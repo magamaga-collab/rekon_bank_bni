@@ -60,7 +60,7 @@ def parse_money(text):
     except ValueError:
         return None
 def get_opening_balance(pdf):
-    text = pdf.pages.extract_text() or ""
+    text = pdf.pages[0].extract_text() or ""
     match = re.search(r"Ledger\s+Balance\s*:\s*([\d,]+\.\d{2})", text, re.IGNORECASE)
     if not match:
         raise ValueError("Ledger Balance awal tidak ditemukan di halaman 1.")
