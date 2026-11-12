@@ -9,7 +9,7 @@ from modul_mandiri import ekstrak_pdf_mandiri, proses_rekonsiliasi_mandiri
 # KONFIGURASI HALAMAN WEB
 # ============================================================
 st.set_page_config(
-    page_title="Rekonsiliasi Rekening Koran vs Odoo",
+    page_title="Rekonsiliasi Rekening Koran vs Pembukuan",
     page_icon="🏦",
     layout="wide"
 )
@@ -30,11 +30,79 @@ if not st.session_state.authenticated:
         else:
             st.error("Password salah! Silakan coba lagi.")
     st.stop()
+# ============================================================
+# FUNGSI PENERJEMAH KOLOM UNIVERSAL (ODOO / ACCURATE / EXCEL)
+# ============================================================
+def deteksi_kolom_otomatis(columns):
+    kamus = {
+        "Date": ["date", "tanggal", "tgl", "posting date", "trans date", "transaction date", "tgl transaksi"],
+        "Label": ["label", "keterangan", "deskripsi", "description", "uraian", "memo", "remarks", "catatan"],
+        "Debit": ["debit", "debet", "masuk", "penerimaan", "db", "mutasi debit", "mutasi debet"],
+        "Credit": ["credit", "kredit", "keluar", "pengeluaran", "cr", "mutasi credit", "mutasi kredit"],
+        "Number": ["number", "no", "nomor", "no bukti", "no. bukti", "ref", "reference", "no transaksi", "voucher"],
+        "Partner": ["partner", "rekanan", "customer", "vendor", "pelanggan", "supplier", "nama", "pihak"]
+    }
+    hasil = {}
+    cols_lower = {str(c).strip().lower(): c for c in columns}
+    for target, sinonim in kamus.items():
+        hasil[target] = None
+        for s in sinonim:
+            if s in cols_lower:
+                hasil[target] = cols_lower[s]
+                break
+    return hasil
+
+
+def normalisasi_excel_pembukuan(df_raw, mapping):
+    df = df_raw.copy()
+    rename_dict = {}
+    for target in ["Date", "Label", "Debit", "Credit", "Number", "Partner"]:
+        sumber = mapping.get(target)
+        if sumber and sumber != "(Tidak Ada)" and sumber in df.columns:
+            rename_dict[sumber] = target
+
+    df = df.rename(columns=rename_dict)
+
+    if "Number" not in df.columns:
+        df["Number"] = ""
+    if "Partner" not in df.columns:
+        df["Partner"] = ""
+
+    return df
+def perhalus_label_universal(df_export, df_laporan_final, pesan_audit):
+    ganti_teks = {
+        "HANYA DI ODOO": "HANYA DI PEMBUKUAN",
+        "Transaksi Odoo": "Transaksi Pembukuan",
+        "Trx Odoo": "Trx Pembukuan",
+        "Tgl Odoo": "Tgl Pembukuan",
+        "di Odoo": "di Pembukuan",
+        "SUM Hasil Rekon Odoo": "SUM Hasil Rekon Pembukuan",
+        "Total Bawaan File Odoo": "Total Bawaan File Pembukuan",
+        "TOTAL ODOO": "TOTAL PEMBUKUAN",
+        "& Odoo": "& Pembukuan",
+        "Total Odoo": "Total Pembukuan",
+        "| Odoo:": "| Pembukuan:"
+    }
+
+    for lama, baru in ganti_teks.items():
+        df_export["Tanggal_Clean"] = df_export["Tanggal_Clean"].astype(str).str.replace(lama, baru, regex=False)
+        df_export["Status_Rekonsiliasi"] = df_export["Status_Rekonsiliasi"].astype(str).str.replace(lama, baru, regex=False)
+        if "Label" in df_export.columns:
+            df_export["Label"] = df_export["Label"].fillna("").astype(str).str.replace(lama, baru, regex=False)
+
+        df_laporan_final["Status_Rekonsiliasi"] = df_laporan_final["Status_Rekonsiliasi"].astype(str).str.replace(lama, baru, regex=False)
+        if "Label" in df_laporan_final.columns:
+            df_laporan_final["Label"] = df_laporan_final["Label"].fillna("").astype(str).str.replace(lama, baru, regex=False)
+
+        pesan_audit = pesan_audit.replace(lama, baru)
+
+    return df_export, df_laporan_final, pesan_audit
+
 
 # ============================================================
 # HEADER & PILIHAN BANK
 # ============================================================
-st.title("🏦 Aplikasi Rekonsiliasi Rekening Koran Bank vs Odoo")
+st.title("🏦 Aplikasi Rekonsiliasi Rekening Koran Bank vs Pembukuan")
 
 pilihan_bank = st.radio(
     "Pilih Bank Rekening Koran:",
@@ -42,8 +110,7 @@ pilihan_bank = st.radio(
     horizontal=True
 )
 
-st.markdown(f"Unggah **PDF Rekening Koran {pilihan_bank}** dan **Excel Mutasi Odoo** untuk memproses ekstraksi dan rekonsiliasi otomatis.")
-
+st.markdown(f"Unggah **PDF Rekening Koran {pilihan_bank}** dan **Excel Catatan Pembukuan (Odoo / Accurate / Excel Manual)** untuk rekonsiliasi otomatis.")
 # ============================================================
 # ANTARMUKA PENGGUNA (STREAMLIT UI)
 # ============================================================
@@ -55,24 +122,78 @@ with col1:
         key=f"pdf_{pilihan_bank}"
     )
 with col2:
-    uploaded_odoo = st.file_uploader(
-        "2. Unggah Mutasi Bank Odoo (.xlsx)",
+    uploaded_book = st.file_uploader(
+        "2. Unggah Excel Catatan Pembukuan (.xlsx)",
         type=["xlsx"],
-        key=f"odoo_{pilihan_bank}"
+        key=f"book_{pilihan_bank}"
     )
 
-if uploaded_pdf and uploaded_odoo:
+mapping_kolom = {}
+df_book_raw = None
+
+if uploaded_book:
+    df_book_raw = pd.read_excel(uploaded_book)
+    kolom_tersedia = df_book_raw.columns.tolist()
+    auto_map = deteksi_kolom_otomatis(kolom_tersedia)
+
+    wajib_lengkap = all(auto_map[k] is not None for k in ["Date", "Label", "Debit", "Credit"])
+
+    with st.expander("⚙️ Pengaturan Pemetaan Kolom Pembukuan (Otomatis Terdeteksi)", expanded=not wajib_lengkap):
+        st.caption("Sistem otomatis mencocokkan nama kolom dari Odoo, Accurate, maupun Excel manual. Ubah jika diperlukan:")
+        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+        with m_col1:
+            mapping_kolom["Date"] = st.selectbox(
+                "Kolom Tanggal *",
+                options=kolom_tersedia,
+                index=kolom_tersedia.index(auto_map["Date"]) if auto_map["Date"] in kolom_tersedia else 0
+            )
+        with m_col2:
+            mapping_kolom["Label"] = st.selectbox(
+                "Kolom Keterangan / Deskripsi *",
+                options=kolom_tersedia,
+                index=kolom_tersedia.index(auto_map["Label"]) if auto_map["Label"] in kolom_tersedia else 0
+            )
+        with m_col3:
+            mapping_kolom["Debit"] = st.selectbox(
+                "Kolom Debit (Uang Masuk) *",
+                options=kolom_tersedia,
+                index=kolom_tersedia.index(auto_map["Debit"]) if auto_map["Debit"] in kolom_tersedia else 0
+            )
+        with m_col4:
+            mapping_kolom["Credit"] = st.selectbox(
+                "Kolom Kredit (Uang Keluar) *",
+                options=kolom_tersedia,
+                index=kolom_tersedia.index(auto_map["Credit"]) if auto_map["Credit"] in kolom_tersedia else 0
+            )
+
+        opsi_opsional = ["(Tidak Ada)"] + kolom_tersedia
+        o_col1, o_col2 = st.columns(2)
+        with o_col1:
+            mapping_kolom["Number"] = st.selectbox(
+                "Kolom No. Bukti / Referensi (Opsional)",
+                options=opsi_opsional,
+                index=opsi_opsional.index(auto_map["Number"]) if auto_map["Number"] in opsi_opsional else 0
+            )
+        with o_col2:
+            mapping_kolom["Partner"] = st.selectbox(
+                "Kolom Nama Rekanan / Partner (Opsional)",
+                options=opsi_opsional,
+                index=opsi_opsional.index(auto_map["Partner"]) if auto_map["Partner"] in opsi_opsional else 0
+            )
+if uploaded_pdf and uploaded_book and df_book_raw is not None:
     if st.button(f"🚀 Proses Rekonsiliasi {pilihan_bank} Sekarang", type="primary", use_container_width=True):
-        with st.spinner(f"Sedang mengekstrak PDF {pilihan_bank} dan mencocokkan dengan data Odoo..."):
+        with st.spinner(f"Sedang mengekstrak PDF {pilihan_bank} dan mencocokkan dengan catatan pembukuan..."):
             try:
-                df_odoo_raw = pd.read_excel(uploaded_odoo)
+                df_book_normalized = normalisasi_excel_pembukuan(df_book_raw, mapping_kolom)
 
                 if pilihan_bank == "BNI Direct":
                     df_bank, saldo_awal, saldo_akhir, pdf_errors = ekstrak_pdf_bni(uploaded_pdf)
-                    df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_bni(df_bank.copy(), df_odoo_raw)
+                    df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_bni(df_bank.copy(), df_book_normalized)
                 else:
                     df_bank, saldo_awal, saldo_akhir, pdf_errors = ekstrak_pdf_mandiri(uploaded_pdf)
-                    df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_mandiri(df_bank.copy(), df_odoo_raw)
+                    df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_mandiri(df_bank.copy(), df_book_normalized)
+
+                df_export, df_laporan_final, pesan_audit = perhalus_label_universal(df_export, df_laporan_final, pesan_audit)
 
                 st.divider()
 
@@ -89,12 +210,12 @@ if uploaded_pdf and uploaded_odoo:
                 m1, m2, m3, m4 = st.columns(4)
                 jml_match = df_laporan_final['Status_Rekonsiliasi'].str.startswith('MATCH').sum()
                 jml_bank_only = df_laporan_final['Status_Rekonsiliasi'].str.startswith('HANYA DI BANK').sum()
-                jml_odoo_only = df_laporan_final['Status_Rekonsiliasi'].str.startswith('HANYA DI ODOO').sum()
+                jml_book_only = df_laporan_final['Status_Rekonsiliasi'].str.startswith('HANYA DI PEMBUKUAN').sum()
 
                 m1.metric("Total Baris Laporan", len(df_laporan_final))
                 m2.metric("Cocok (MATCH)", jml_match)
                 m3.metric("Hanya di Bank", jml_bank_only)
-                m4.metric("Hanya di Odoo", jml_odoo_only)
+                m4.metric("Hanya di Pembukuan", jml_book_only)
 
                 tab1, tab2 = st.tabs(["📊 Hasil Rekonsiliasi Lengkap", f"📄 Hasil Ekstraksi PDF {pilihan_bank}"])
                 with tab1:
