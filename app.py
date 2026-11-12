@@ -26,21 +26,21 @@ def clean_double_printed(text):
     s = str(text).strip().replace(" ", "")
     if len(s) % 2 == 0 and len(s) > 0:
         pairs = [s[i:i+2] for i in range(0, len(s), 2)]
-        if all(len(p) == 2 and p == p for p in pairs):
-            return "".join(p for p in pairs)
+        if all(len(p) == 2 and p[0] == p[1] for p in pairs):
+            return "".join(p[0] for p in pairs)
 
     s = re.sub(r'\.\.+', '.', s)
     if '.' in s:
         bagian_kiri, bagian_kanan = s.split('.', 1)
-        if len(bagian_kanan) == 4 and bagian_kanan == bagian_kanan and bagian_kanan == bagian_kanan:
-            bagian_kanan = bagian_kanan + bagian_kanan
+        if len(bagian_kanan) == 4 and bagian_kanan[0] == bagian_kanan[1] and bagian_kanan[2] == bagian_kanan[3]:
+            bagian_kanan = bagian_kanan[0] + bagian_kanan[2]
         if ',' in bagian_kiri:
             grup_koma = bagian_kiri.split(',')
             grup_bersih = []
             for idx_g, g in enumerate(grup_koma):
                 if idx_g > 0 and len(g) == 6 and all(g[j] == g[j+1] for j in range(0, 6, 2)):
                     grup_bersih.append(g[::2])
-                elif idx_g == 0 and len(g) >= 2 and g == g and len(grup_koma) > 1 and len(g) > 3:
+                elif idx_g == 0 and len(g) >= 2 and g[0] == g[1] and len(grup_koma) > 1 and len(g) > 3:
                     grup_bersih.append(g[1:])
                 else:
                     grup_bersih.append(g)
