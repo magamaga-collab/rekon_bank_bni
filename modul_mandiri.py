@@ -231,15 +231,17 @@ def proses_rekonsiliasi_mandiri(df_bank_raw, df_odoo_raw):
         })
     df_rekon_fee = pd.DataFrame(rekon_fee_rows)
 
-    # 2. Net Jagir Akhir Bulan (Toleransi Pembulatan Rp5)
+    # 2. Net Jagir Akhir Bulan (Toleransi Pembulatan Rp5 + Simpan Total Pajak untuk Audit Bank)
     bunga_bank = df_bank[df_bank['Keterangan_Upper'].str.contains('BUNGA')].copy()
     pajak_bank = df_bank[df_bank['Keterangan_Upper'].str.contains('PAJAK')].copy()
 
     net_jagir_bank_rows = []
+    val_pajak_total_jagir = 0.0
     if not bunga_bank.empty and not pajak_bank.empty:
         for tgl in bunga_bank['Tanggal_Clean'].unique():
             val_bunga = bunga_bank[bunga_bank['Tanggal_Clean'] == tgl]['Kredit'].sum()
             val_pajak = pajak_bank[pajak_bank['Tanggal_Clean'] == tgl]['Debet'].sum()
+            val_pajak_total_jagir += val_pajak
             net_bank = round(val_bunga - val_pajak, 2)
             if net_bank > 0:
                 net_jagir_bank_rows.append({'Tanggal_Clean': tgl, 'Net_Jagir_Bank': net_bank, 'Bunga_Asli': val_bunga, 'Pajak_Asli': val_pajak})
@@ -300,27 +302,36 @@ def proses_rekonsiliasi_mandiri(df_bank_raw, df_odoo_raw):
 
     df_total_normal['Status_Rekonsiliasi'] = df_total_normal.apply(tentukan_status_normal, axis=1)
 
-    # 4. Gabungkan Laporan & Audit Cross-Check Total Odoo
+    # 4. Gabungkan Laporan & Audit Cross-Check Total Bank + Total Odoo
     df_laporan_akhir = pd.concat([df_total_normal, df_rekon_jagir, df_rekon_fee], ignore_index=True)
     kolom_laporan = ['Tanggal_Clean', 'Status_Rekonsiliasi', 'Tipe', 'Keterangan', 'Debet', 'Kredit', 'Saldo', 'Number', 'Partner', 'Label', 'Debit', 'Credit']
     kolom_laporan = [c for c in kolom_laporan if c in df_laporan_akhir.columns]
 
     df_laporan_final = df_laporan_akhir[kolom_laporan].drop_duplicates(subset=['Tanggal_Clean', 'Keterangan', 'Debet', 'Number', 'Credit'], keep='first').sort_values(by='Tanggal_Clean').reset_index(drop=True)
 
+    # Audit Odoo
     total_debit_rekon = df_laporan_final['Debit'].fillna(0).sum()
     total_credit_rekon = df_laporan_final['Credit'].fillna(0).sum()
-    selisih_debit = round(total_debit_rekon - total_debit_bawaan, 2)
-    selisih_credit = round(total_credit_rekon - total_credit_bawaan, 2)
+    selisih_debit_odoo = round(total_debit_rekon - total_debit_bawaan, 2)
+    selisih_credit_odoo = round(total_credit_rekon - total_credit_bawaan, 2)
 
-    if selisih_debit == 0 and selisih_credit == 0:
-        pesan_audit = "OKE 100% - Total Debit & Credit Hasil Rekon 100% SAMA dengan Total Bawaan Odoo!"
+    # Audit Bank Mandiri (Termasuk Netting Pajak Bunga)
+    total_debet_bank_asli = df_bank['Debet'].sum()
+    total_kredit_bank_asli = df_bank['Kredit'].sum()
+    total_debet_bank_rekon = round(df_laporan_final['Debet'].fillna(0).sum() + val_pajak_total_jagir, 2)
+    total_kredit_bank_rekon = round(df_laporan_final['Kredit'].fillna(0).sum() + val_pajak_total_jagir, 2)
+    selisih_debet_bank = round(total_debet_bank_rekon - total_debet_bank_asli, 2)
+    selisih_kredit_bank = round(total_kredit_bank_rekon - total_kredit_bank_asli, 2)
+
+    if selisih_debit_odoo == 0 and selisih_credit_odoo == 0 and selisih_debet_bank == 0 and selisih_kredit_bank == 0:
+        pesan_audit = "OKE 100% - Total Bank & Total Odoo Hasil Rekon SAMA PERSIS dengan Data Asli!"
     else:
-        pesan_audit = f"PERINGATAN ADA SELISIH! (Selisih Debit: Rp{selisih_debit:,.2f} | Selisih Credit: Rp{selisih_credit:,.2f})"
+        pesan_audit = f"CEK SELISIH! (Bank: {selisih_debet_bank:,.2f}/{selisih_kredit_bank:,.2f} | Odoo: {selisih_debit_odoo:,.2f}/{selisih_credit_odoo:,.2f})"
 
     baris_audit = pd.DataFrame([
-        {'Tanggal_Clean': 'TOTAL REKON', 'Status_Rekonsiliasi': 'SUM Hasil Rekon Odoo', 'Debet': df_laporan_final['Debet'].fillna(0).sum(), 'Kredit': df_laporan_final['Kredit'].fillna(0).sum(), 'Debit': total_debit_rekon, 'Credit': total_credit_rekon},
-        {'Tanggal_Clean': 'TOTAL ODOO', 'Status_Rekonsiliasi': 'Total Bawaan File Odoo', 'Debit': total_debit_bawaan, 'Credit': total_credit_bawaan},
-        {'Tanggal_Clean': 'STATUS AUDIT', 'Status_Rekonsiliasi': pesan_audit, 'Debit': selisih_debit, 'Credit': selisih_credit}
+        {'Tanggal_Clean': 'TOTAL REKON', 'Status_Rekonsiliasi': 'SUM Hasil Rekon (Termasuk Netting Pajak)', 'Debet': total_debet_bank_rekon, 'Kredit': total_kredit_bank_rekon, 'Debit': total_debit_rekon, 'Credit': total_credit_rekon},
+        {'Tanggal_Clean': 'TOTAL ASLI', 'Status_Rekonsiliasi': 'Total Asli Rekening Koran & Odoo', 'Debet': total_debet_bank_asli, 'Kredit': total_kredit_bank_asli, 'Debit': total_debit_bawaan, 'Credit': total_credit_bawaan},
+        {'Tanggal_Clean': 'STATUS AUDIT', 'Status_Rekonsiliasi': pesan_audit, 'Debet': selisih_debet_bank, 'Kredit': selisih_kredit_bank, 'Debit': selisih_debit_odoo, 'Credit': selisih_credit_odoo}
     ])
 
     df_export = pd.concat([df_laporan_final, baris_audit], ignore_index=True)
