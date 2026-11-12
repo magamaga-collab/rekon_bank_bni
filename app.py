@@ -82,10 +82,10 @@ def find_transaction_dates(words):
 def get_amount(words, date_y, dbcr):
     candidates = []
     for w in words:
-        if not (450 <= w["x0"] < 610):
+        if not (440 <= w["x0"] < 615):
             continue
         value = parse_money(w["text"])
-        if value is None or abs(w["top"] - date_y) > 35:
+        if value is None or abs(w["top"] - date_y) > 75:
             continue
         candidates.append({"value": value, "y": w["top"], "distance": abs(w["top"] - date_y)})
     if not candidates:
