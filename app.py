@@ -164,12 +164,16 @@ def ekstrak_pdf_bni(pdf_file):
                     raise ValueError(f"DB/CR tidak ditemukan: Halaman {page_number}, tanggal {tanggal}")
 
                 nominal = get_amount(row_words, date_y, dbcr)
-                if nominal is None:
-                    raise ValueError(f"Nominal tidak ditemukan: Halaman {page_number}, tanggal {tanggal}")
-
                 saldo = get_balance(row_words, date_y)
+                prev_bal = transactions[-1]["Saldo"] if transactions else opening_balance
+
+                if nominal is None:
+                    if saldo is not None:
+                        nominal = round(abs(saldo - prev_bal), 2)
+                    else:
+                        raise ValueError(f"Nominal dan Saldo tidak ditemukan: Halaman {page_number}, tanggal {tanggal}")
+
                 if saldo is None:
-                    prev_bal = transactions[-1]["Saldo"] if transactions else opening_balance
                     saldo = round(prev_bal - (nominal if dbcr == "D" else 0.0) + (nominal if dbcr == "K" else 0.0), 2)
 
                 prev_bal_check = transactions[-1]["Saldo"] if transactions else opening_balance
