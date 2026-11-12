@@ -15,7 +15,22 @@ st.set_page_config(
     page_icon="🏦",
     layout="wide"
 )
+# ============================================================
+# HALAMAN LOGIN PASSWORD
+# ============================================================
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
+if not st.session_state.authenticated:
+    st.title("🔒 Login Aplikasi Rekonsiliasi BNI")
+    pwd = st.text_input("Masukkan Password Akses:", type="password")
+    if st.button("Masuk", type="primary"):
+        if pwd == st.secrets["APP_PASSWORD"]:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Password salah! Silakan coba lagi.")
+    st.stop()
 st.title("🏦 Aplikasi Rekonsiliasi Rekening Koran BNI vs Odoo")
 st.markdown("Unggah **PDF Rekening Koran BNI Direct** dan **Excel Mutasi Odoo** untuk memproses ekstraksi dan rekonsiliasi otomatis.")
 
