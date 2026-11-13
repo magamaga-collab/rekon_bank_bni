@@ -288,14 +288,13 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                         for r in range(2, last_data_row + 1):
                             ws.cell(row=r, column=idx_selisih).value = f"=({c_kredit}{r}-{c_debet}{r})-({c_debit}{r}-{c_credit}{r})"
 
-                    # 2. Tulis rumus =SUM(...) di baris TOTAL REKON & pengurangan di CONTROL CHECK
+                    # 2. Tulis rumus =SUM(...) murni di baris TOTAL REKON & pengurangan di CONTROL CHECK
                     for nama_kol in ["Debet", "Kredit", "Debit", "Credit", "Selisih Bank dengan GL"]:
                         if nama_kol in col_idx:
                             c_idx = col_idx[nama_kol]
                             c_let = col_letter[nama_kol]
                             ws.cell(row=row_total_rekon, column=c_idx).value = f"=SUM({c_let}2:{c_let}{last_data_row})"
                             ws.cell(row=row_control_check, column=c_idx).value = f"={c_let}{row_total_rekon}-{c_let}{row_total_asli}"
-
 
                 nama_file_keluar = f"Hasil_Rekonsiliasi_{uploaded_pdf.name.replace('.pdf', '')}.xlsx"
                 st.download_button(
