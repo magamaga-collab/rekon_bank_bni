@@ -417,44 +417,84 @@ def buat_excel_dengan_kontrol_bulanan(df_laporan_final, df_bank, df_gl_norm, df_
                 s_ws.column_dimensions[get_column_letter(idx_h)].width = max(min(max_len + 5, 55), 16)
 
     return output_buffer.getvalue()
+
 # ============================================================
-# HEADER & PILIHAN BANK
+# CSS ENTERPRISE WORKSPACE (CALM & MODERN UI)
 # ============================================================
 st.markdown(
     """
-    <h1 style='margin-bottom: 0.2rem;'>
-        🏦 Aplikasi Rekonsiliasi Rekening Koran Bank vs General Ledger
-        <sup style='font-size: 0.42em; font-weight: 600; color: #6c757d; letter-spacing: 0.5px;'>by FERDX</sup>
-    </h1>
+    <style>
+    .stApp {
+        background-color: #F4F7FA;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+        padding: 0.5rem;
+    }
+    div.stButton > button[kind="primary"] {
+        background-color: #1E3A8A;
+        border-color: #1E3A8A;
+        color: #FFFFFF;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        background-color: #1D4ED8;
+        border-color: #1D4ED8;
+    }
+    </style>
     """,
     unsafe_allow_html=True
 )
 
-pilihan_bank = st.radio(
-    "Pilih Bank Rekening Koran:",
-    ["BNI Direct", "Bank Mandiri"],
-    horizontal=True
-)
-
-st.markdown(f"Unggah **PDF Rekening Koran {pilihan_bank}** dan **Excel Catatan Transaksi Internal (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
+# ============================================================
+# HEADER & TOMBOL KUNCI SESI
+# ============================================================
+h_col1, h_col2 = st.columns([5, 1])
+with h_col1:
+    st.markdown(
+        """
+        <h2 style='margin-bottom: 0.15rem; color: #0F172A;'>
+            🏦 Aplikasi Rekonsiliasi Rekening Koran Bank vs General Ledger
+            <sup style='font-size: 0.45em; font-weight: 600; color: #64748B; letter-spacing: 0.5px;'>by FERDX</sup>
+        </h2>
+        """,
+        unsafe_allow_html=True
+    )
+with h_col2:
+    st.write("")
+    if st.button("🔒 Kunci Sesi", use_container_width=True):
+        st.session_state.authenticated = False
+        st.rerun()
 
 # ============================================================
-# ANTARMUKA PENGGUNA (STREAMLIT UI)
+# KARTU PANEL UNGGAH & PILIHAN BANK
 # ============================================================
-col1, col2 = st.columns(2)
-with col1:
-    uploaded_pdfs = st.file_uploader(
-        f"1. Unggah Rekening Koran {pilihan_bank} (.pdf — Bisa 1 s.d. 12 Bulan Sekaligus)",
-        type=["pdf"],
-        accept_multiple_files=True,
-        key=f"pdf_{pilihan_bank}"
+with st.container(border=True):
+    pilihan_bank = st.radio(
+        "Pilih Bank Rekening Koran:",
+        ["BNI Direct", "Bank Mandiri"],
+        horizontal=True
     )
-with col2:
-    uploaded_book = st.file_uploader(
-        "2. Unggah Excel General Ledger (.xlsx)",
-        type=["xlsx"],
-        key=f"book_{pilihan_bank}"
-    )
+    st.caption(f"Unggah **PDF Rekening Koran {pilihan_bank}** (1 s.d. 12 bulan) dan **Excel Catatan Transaksi Internal (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        uploaded_pdfs = st.file_uploader(
+            f"1. Unggah Rekening Koran {pilihan_bank} (.pdf)",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key=f"pdf_{pilihan_bank}"
+        )
+    with col2:
+        uploaded_book = st.file_uploader(
+            "2. Unggah Excel General Ledger (.xlsx)",
+            type=["xlsx"],
+            key=f"book_{pilihan_bank}"
+        )
 
 mapping_kolom = {}
 df_book_raw = None
