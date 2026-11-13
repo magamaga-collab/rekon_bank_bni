@@ -242,7 +242,7 @@ def proses_rekonsiliasi_bni(df_bank_raw, df_odoo_raw):
             'Credit': total_fee_odoo, 'Debit': 0.0
         })
     df_rekon_fee = pd.DataFrame(rekon_fee_rows)
-    # 2. Net Jagir / Jasa Giro
+    # 2. Net Jagir / Jasa Giro (Tampil Kotor Apa Adanya agar SUM Footer 100% Sama dengan PDF)
     is_bunga_murni = (
         df_bank['Keterangan_Upper'].str.contains(r'JASA GIRO|\bBUNGA\b', regex=True)
         & ~df_bank['Keterangan_Upper'].str.contains('TABUNGAN|TRANSFER DARI|PAPAN|ANGGREK')
@@ -250,44 +250,30 @@ def proses_rekonsiliasi_bni(df_bank_raw, df_odoo_raw):
     )
     is_pajak_murni = ((df_bank['Keterangan_Upper'].str.strip() == 'PAJAK') | (df_bank['Keterangan_Upper'].str.strip() == 'PPH')) & (df_bank['Debet'] > 0)
     filter_bunga_pajak_bank = is_bunga_murni | is_pajak_murni
-
-    bunga_bank = df_bank[is_bunga_murni].copy()
-    pajak_bank = df_bank[is_pajak_murni].copy()
-
-    net_jagir_bank_rows = []
-    val_pajak_total_jagir = 0.0
-    if not bunga_bank.empty:
-        for tgl in bunga_bank['Tanggal_Clean'].unique():
-            val_bunga = bunga_bank[bunga_bank['Tanggal_Clean'] == tgl]['Kredit'].sum()
-            val_pajak = pajak_bank[pajak_bank['Tanggal_Clean'] == tgl]['Debet'].sum() if not pajak_bank.empty else 0.0
-            val_pajak_total_jagir += val_pajak
-            net_bank = round(val_bunga - val_pajak, 2)
-            if net_bank > 0:
-                net_jagir_bank_rows.append({'Tanggal_Clean': tgl, 'Net_Jagir_Bank': net_bank, 'Bunga_Asli': val_bunga, 'Pajak_Asli': val_pajak})
-    df_net_bank = pd.DataFrame(net_jagir_bank_rows)
-
     filter_odoo_jagir = df_odoo['Label_Upper'].str.contains('NET JAGIR')
-    df_odoo_jagir = df_odoo[filter_odoo_jagir].copy()
 
-    if not df_net_bank.empty and not df_odoo_jagir.empty:
-        df_rekon_jagir = pd.merge(df_net_bank, df_odoo_jagir, on='Tanggal_Clean', how='outer')
-        def cek_status_jagir(r):
-            if pd.isna(r['Net_Jagir_Bank']) or pd.isna(r['Debit']): return 'SELISIH NET JAGIR'
-            selisih = abs(r['Net_Jagir_Bank'] - r['Debit'])
-            if selisih == 0: return 'MATCH (Net Jagir Cocok)'
-            elif selisih <= 5: return f'MATCH (Net Jagir Cocok - Selisih Pembulatan Rp{selisih:,.2f})'
-            else: return f'SELISIH NET JAGIR (Selisih Rp{selisih:,.2f})'
-        df_rekon_jagir['Status_Rekonsiliasi'] = df_rekon_jagir.apply(cek_status_jagir, axis=1)
-        df_rekon_jagir['Tipe'] = 'Masuk (Netto)'
-        df_rekon_jagir['Keterangan'] = df_rekon_jagir.apply(lambda r: f"Jasa Giro/Bunga (Rp{r['Bunga_Asli']:,.2f}) & Pajak (Rp{r['Pajak_Asli']:,.2f}) di-Nettkan" if pd.notna(r['Bunga_Asli']) else '', axis=1)
-        df_rekon_jagir['Kredit'] = df_rekon_jagir['Net_Jagir_Bank']
-        df_rekon_jagir['Debet'] = 0.0
-    elif not df_odoo_jagir.empty:
-        df_rekon_jagir = df_odoo_jagir.copy()
-        df_rekon_jagir['Status_Rekonsiliasi'] = 'HANYA DI ODOO (Net Jagir)'
-        df_rekon_jagir['Tipe'] = 'Masuk (Netto)'
-    else:
-        df_rekon_jagir = pd.DataFrame()
+    jagir_rows = []
+    val_pajak_total_jagir = 0.0
+
+    for _, rb in df_bank[filter_bunga_pajak_bank].iterrows():
+        r_dict = rb.to_dict()
+        r_dict['Status_Rekonsiliasi'] = 'NETTING JAGIR (Komponen Bunga/Pajak vs GL)'
+        r_dict['Tipe'] = 'Masuk (Bunga)' if rb['Kredit'] > 0 else 'Keluar (Pajak Bunga)'
+        jagir_rows.append(r_dict)
+
+    for _, ro in df_odoo[filter_odoo_jagir].iterrows():
+        r_dict = ro.to_dict()
+        r_dict['Status_Rekonsiliasi'] = 'NETTING JAGIR (Komponen Bunga/Pajak vs GL)'
+        r_dict['Tipe'] = 'Masuk (Netto GL)'
+        jagir_rows.append(r_dict)
+
+    df_rekon_jagir = pd.DataFrame(jagir_rows)
+
+    # 3. Transaksi Normal
+    filter_bank_normal = ~filter_bank_fee & ~filter_bunga_pajak_bank
+    df_bank_normal = df_bank[filter_bank_normal].copy().reset_index(drop=True)
+    filter_odoo_normal = ~filter_odoo_fee & ~filter_odoo_jagir
+    df_odoo_normal = df_odoo[filter_odoo_normal].copy().reset_index(drop=True)
     # 3. Transaksi Normal
     filter_bank_normal = ~filter_bank_fee & ~filter_bunga_pajak_bank
     df_bank_normal = df_bank[filter_bank_normal].copy().reset_index(drop=True)
