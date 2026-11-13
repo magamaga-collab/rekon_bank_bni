@@ -218,7 +218,7 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                     df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_mandiri(df_bank.copy(), df_book_normalized)
 
                 df_export, df_laporan_final, pesan_audit = perhalus_label_universal(df_export, df_laporan_final, pesan_audit)
-df_export, df_laporan_final = tambah_kolom_selisih(df_export, df_laporan_final)
+                df_export, df_laporan_final = tambah_kolom_selisih(df_export, df_laporan_final)
                 st.divider()
 
                 if len(pdf_errors) == 0:
