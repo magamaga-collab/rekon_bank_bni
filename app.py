@@ -101,7 +101,7 @@ if not st.session_state.authenticated:
                 unsafe_allow_html=True
             )
     st.stop()
-
+autocomplete="current-password"
 
 
 # ============================================================
