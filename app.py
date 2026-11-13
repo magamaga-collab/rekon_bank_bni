@@ -118,7 +118,7 @@ pilihan_bank = st.radio(
     horizontal=True
 )
 
-st.markdown(f"Unggah **PDF Rekening Koran {pilihan_bank}** dan **Excel Catatan Transaksi Internal (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
+st.markdown(f"Unggah **PDF Rekening Koran {pilihan_bank}** dan **Excel Catatan Transaksi Internal/GL (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
 # ============================================================
 # ANTARMUKA PENGGUNA (STREAMLIT UI)
 # ============================================================
