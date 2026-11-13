@@ -81,7 +81,7 @@ def perhalus_label_universal(df_export, df_laporan_final, pesan_audit):
         "TOTAL ODOO": "TOTAL GENERAL LEDGER",
         "& Odoo": "& General Ledger",
         "Total Odoo": "Total General Ledger",
-        "| Odoo:": "| GL:"
+        "| Odoo:": "| GL:",
                 "STATUS AUDIT": "CONTROL CHECK",
 
     }
