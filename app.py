@@ -17,21 +17,91 @@ st.set_page_config(
 )
 
 # ============================================================
-# HALAMAN LOGIN PASSWORD
+# HALAMAN LOGIN PASSWORD (ENTERPRISE CALM UI)
 # ============================================================
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.title("🔒 Login Aplikasi Rekonsiliasi Bank")
-    pwd = st.text_input("Masukkan Password Akses:", type="password")
-    if st.button("Masuk", type="primary"):
-        if pwd == st.secrets["APP_PASSWORD"]:
-            st.session_state.authenticated = True
-            st.rerun()
-        else:
-            st.error("Password salah! Silakan coba lagi.")
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            background-color: #F4F7FA;
+        }
+        header[data-testid="stHeader"] {
+            background: transparent;
+        }
+        [data-testid="stToolbar"] {
+            display: none;
+        }
+        div[data-testid="stForm"] {
+            background-color: #FFFFFF;
+            padding: 2.2rem 2rem;
+            border-radius: 14px;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+        }
+        div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
+            background-color: #1E3A8A;
+            border-color: #1E3A8A;
+            color: #FFFFFF;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0.55rem 1rem;
+        }
+        div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
+            background-color: #1D4ED8;
+            border-color: #1D4ED8;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.write("")
+    st.write("")
+    _, col_center, _ = st.columns([1.2, 1.3, 1.2])
+
+    with col_center:
+        with st.form("login_form", clear_on_submit=False):
+            st.markdown(
+                """
+                <div style="text-align: center; margin-bottom: 1.2rem;">
+                    <div style="font-size: 2.2rem; margin-bottom: 0.2rem;">🏦</div>
+                    <h3 style="margin: 0; color: #0F172A; font-weight: 700;">
+                        Rekonsiliasi Bank vs GL
+                        <sup style="font-size: 0.5em; color: #64748B; font-weight: 600;">by FERDX</sup>
+                    </h3>
+                    <p style="margin: 0.35rem 0 0 0; font-size: 0.88rem; color: #64748B;">
+                        Enterprise Automated Reconciliation Workspace
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            pwd = st.text_input("Password Akses", type="password", placeholder="Masukkan kata sandi tim...")
+            st.write("")
+            submitted = st.form_submit_button("🔐 Masuk ke Aplikasi", type="primary", use_container_width=True)
+
+            if submitted:
+                if pwd == st.secrets["APP_PASSWORD"]:
+                    st.session_state.authenticated = True
+                    st.rerun()
+                else:
+                    st.error("Password salah! Silakan periksa kembali.")
+
+            st.markdown(
+                """
+                <div style="text-align: center; margin-top: 1rem; font-size: 0.78rem; color: #94A3B8;">
+                    🔒 Akses Terbatas • Pemrosesan Aman di Memori
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
     st.stop()
+
 
 
 # ============================================================
