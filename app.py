@@ -71,18 +71,15 @@ def normalisasi_excel_pembukuan(df_raw, mapping):
     return df
 def perhalus_label_universal(df_export, df_laporan_final, pesan_audit):
     ganti_teks = {
-        "HANYA DI ODOO": "HANYA DI GENERAL LEDGER",
-        "Transaksi Odoo": "Transaksi General Ledger",
-        "Trx Odoo": "Trx GL",
-        "Tgl Odoo": "Tgl GL",
-        "di Odoo": "di General Ledger",
-        "SUM Hasil Rekon Odoo": "SUM Hasil Rekon General Ledger",
-        "Total Bawaan File Odoo": "Total Bawaan File General Ledger",
-        "TOTAL ODOO": "TOTAL GENERAL LEDGER",
-        "& Odoo": "& General Ledger",
-        "Total Odoo": "Total General Ledger",
-        "| Odoo:": "| GL:"
+    ...
     }
+    for lama, baru in ganti_teks.items():
+        ...
+        pesan_audit = pesan_audit.replace(lama, baru)
+
+    return df_export, df_laporan_final, pesan_audit
+
+
 def tambah_kolom_selisih(df_export, df_laporan_final):
     nama_kolom = "Selisih Bank dengan GL"
 
