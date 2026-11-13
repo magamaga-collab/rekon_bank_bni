@@ -81,7 +81,7 @@ if not st.session_state.authenticated:
                 unsafe_allow_html=True
             )
 
-            pwd = st.text_input("Password Akses", type="password", placeholder="Masukkan kata sandi tim...")
+            pwd = st.text_input("Password Akses", type="password", placeholder="Masukkan kata sandi tim...", autocomplete="current-password")
             st.write("")
             submitted = st.form_submit_button("🔐 Masuk ke Aplikasi", type="primary", use_container_width=True)
 
@@ -101,7 +101,7 @@ if not st.session_state.authenticated:
                 unsafe_allow_html=True
             )
     st.stop()
-autocomplete="current-password"
+
 
 
 # ============================================================
