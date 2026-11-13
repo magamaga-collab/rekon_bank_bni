@@ -71,10 +71,29 @@ def normalisasi_excel_pembukuan(df_raw, mapping):
     return df
 def perhalus_label_universal(df_export, df_laporan_final, pesan_audit):
     ganti_teks = {
-    ...
+        "HANYA DI ODOO": "HANYA DI GENERAL LEDGER",
+        "Transaksi Odoo": "Transaksi General Ledger",
+        "Trx Odoo": "Trx GL",
+        "Tgl Odoo": "Tgl GL",
+        "di Odoo": "di General Ledger",
+        "SUM Hasil Rekon Odoo": "SUM Hasil Rekon General Ledger",
+        "Total Bawaan File Odoo": "Total Bawaan File General Ledger",
+        "TOTAL ODOO": "TOTAL GENERAL LEDGER",
+        "& Odoo": "& General Ledger",
+        "Total Odoo": "Total General Ledger",
+        "| Odoo:": "| GL:"
     }
+
     for lama, baru in ganti_teks.items():
-        ...
+        df_export["Tanggal_Clean"] = df_export["Tanggal_Clean"].astype(str).str.replace(lama, baru, regex=False)
+        df_export["Status_Rekonsiliasi"] = df_export["Status_Rekonsiliasi"].astype(str).str.replace(lama, baru, regex=False)
+        if "Label" in df_export.columns:
+            df_export["Label"] = df_export["Label"].fillna("").astype(str).str.replace(lama, baru, regex=False)
+
+        df_laporan_final["Status_Rekonsiliasi"] = df_laporan_final["Status_Rekonsiliasi"].astype(str).str.replace(lama, baru, regex=False)
+        if "Label" in df_laporan_final.columns:
+            df_laporan_final["Label"] = df_laporan_final["Label"].fillna("").astype(str).str.replace(lama, baru, regex=False)
+
         pesan_audit = pesan_audit.replace(lama, baru)
 
     return df_export, df_laporan_final, pesan_audit
@@ -91,25 +110,11 @@ def tambah_kolom_selisih(df_export, df_laporan_final):
 
         df[nama_kolom] = ((kredit_bank - debet_bank) - (debit_gl - credit_gl)).round(2)
 
-    # Pastikan baris TOTAL REKON di df_export menampilkan SUM bersih dari seluruh baris transaksi
     mask_transaksi = ~df_export["Tanggal_Clean"].isin(["TOTAL REKON", "TOTAL ASLI", "STATUS AUDIT"])
     total_selisih_sum = round(df_export.loc[mask_transaksi, nama_kolom].sum(), 2)
     df_export.loc[df_export["Tanggal_Clean"] == "TOTAL REKON", nama_kolom] = total_selisih_sum
 
     return df_export, df_laporan_final
-    for lama, baru in ganti_teks.items():
-        df_export["Tanggal_Clean"] = df_export["Tanggal_Clean"].astype(str).str.replace(lama, baru, regex=False)
-        df_export["Status_Rekonsiliasi"] = df_export["Status_Rekonsiliasi"].astype(str).str.replace(lama, baru, regex=False)
-        if "Label" in df_export.columns:
-            df_export["Label"] = df_export["Label"].fillna("").astype(str).str.replace(lama, baru, regex=False)
-
-        df_laporan_final["Status_Rekonsiliasi"] = df_laporan_final["Status_Rekonsiliasi"].astype(str).str.replace(lama, baru, regex=False)
-        if "Label" in df_laporan_final.columns:
-            df_laporan_final["Label"] = df_laporan_final["Label"].fillna("").astype(str).str.replace(lama, baru, regex=False)
-
-        pesan_audit = pesan_audit.replace(lama, baru)
-
-    return df_export, df_laporan_final, pesan_audit
 
 
 # ============================================================
