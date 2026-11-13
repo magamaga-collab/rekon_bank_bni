@@ -449,6 +449,15 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+def warnai_baris_status(row):
+    status = str(row.get("Status_Rekonsiliasi", ""))
+    if status.startswith("MATCH"):
+        return ["background-color: #F0FDF4"] * len(row)
+    elif status.startswith(("NETTING JAGIR", "KONTRA BANK")):
+        return ["background-color: #EFF6FF"] * len(row)
+    elif status.startswith(("HANYA DI", "SELISIH")):
+        return ["background-color: #FEF2F2"] * len(row)
+    return [""] * len(row)
 
 # ============================================================
 # HEADER & TOMBOL KUNCI SESI
@@ -682,18 +691,9 @@ if uploaded_pdfs and uploaded_book and df_book_raw is not None:
                         (df_laporan_final['Tanggal_Clean'].astype(str).str[:7].isin(filter_bulan))
                         & (df_laporan_final['Status_Rekonsiliasi'].isin(filter_status))
                     ]
-                    def warnai_baris_status(row):
-                        status = str(row.get("Status_Rekonsiliasi", ""))
-                        if status.startswith("MATCH"):
-                            return ["background-color: #F0FDF4"] * len(row)
-                        elif status.startswith(("NETTING JAGIR", "KONTRA BANK")):
-                            return ["background-color: #EFF6FF"] * len(row)
-                        elif status.startswith(("HANYA DI", "SELISIH")):
-                            return ["background-color: #FEF2F2"] * len(row)
-                        return [""] * len(row)
-
-                    fmt_lap = {k: v for k, v in fmt_uang.items() if k in df_tampil.columns}
-                    st.dataframe(
+                    
+                fmt_lap = {k: v for k, v in fmt_uang.items() if k in df_tampil.columns}
+                st.dataframe(
                         df_tampil.style.format(fmt_lap).apply(warnai_baris_status, axis=1),
                         use_container_width=True,
                         height=450
