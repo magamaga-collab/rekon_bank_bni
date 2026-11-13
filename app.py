@@ -208,7 +208,7 @@ def buat_rekap_per_bulan(df_laporan_final):
         debit_g = round(grp["Debit"].fillna(0).sum(), 2)
         credit_g = round(grp["Credit"].fillna(0).sum(), 2)
         selisih_net = round((kredit_b - debet_b) - (debit_g - credit_g), 2)
-        jml_unmatched = grp[~grp["Status_Rekonsiliasi"].str.startswith(("MATCH", "NETTING JAGIR", "KONTRA BANK"))].shape
+        jml_unmatched = grp[~grp["Status_Rekonsiliasi"].str.startswith(("MATCH", "NETTING JAGIR", "KONTRA BANK"))].shape[0]
 
         if selisih_net == 0 and jml_unmatched == 0:
             status = "✅ COCOK 100%"
