@@ -71,17 +71,17 @@ def normalisasi_excel_pembukuan(df_raw, mapping):
     return df
 def perhalus_label_universal(df_export, df_laporan_final, pesan_audit):
     ganti_teks = {
-        "HANYA DI ODOO": "HANYA DI PEMBUKUAN",
-        "Transaksi Odoo": "Transaksi Pembukuan",
-        "Trx Odoo": "Trx Pembukuan",
-        "Tgl Odoo": "Tgl Pembukuan",
-        "di Odoo": "di Pembukuan",
-        "SUM Hasil Rekon Odoo": "SUM Hasil Rekon Pembukuan",
-        "Total Bawaan File Odoo": "Total Bawaan File Pembukuan",
-        "TOTAL ODOO": "TOTAL PEMBUKUAN",
-        "& Odoo": "& Pembukuan",
-        "Total Odoo": "Total Pembukuan",
-        "| Odoo:": "| Pembukuan:"
+        "HANYA DI ODOO": "HANYA DI GENERAL LEDGER",
+        "Transaksi Odoo": "Transaksi General Ledger",
+        "Trx Odoo": "Trx GL",
+        "Tgl Odoo": "Tgl GL",
+        "di Odoo": "di General Ledger",
+        "SUM Hasil Rekon Odoo": "SUM Hasil Rekon General Ledger",
+        "Total Bawaan File Odoo": "Total Bawaan File General Ledger",
+        "TOTAL ODOO": "TOTAL GENERAL LEDGER",
+        "& Odoo": "& General Ledger",
+        "Total Odoo": "Total General Ledger",
+        "| Odoo:": "| GL:"
     }
 
     for lama, baru in ganti_teks.items():
@@ -102,7 +102,15 @@ def perhalus_label_universal(df_export, df_laporan_final, pesan_audit):
 # ============================================================
 # HEADER & PILIHAN BANK
 # ============================================================
-st.title("🏦 Aplikasi Rekonsiliasi Rekening Koran Bank vs Pembukuan")
+st.markdown(
+    """
+    <h1 style='margin-bottom: 0.2rem;'>
+        🏦 Aplikasi Rekonsiliasi Rekening Koran Bank vs General Ledger
+        <sup style='font-size: 0.42em; font-weight: 600; color: #6c757d; letter-spacing: 0.5px;'>by FERDX</sup>
+    </h1>
+    """,
+    unsafe_allow_html=True
+)
 
 pilihan_bank = st.radio(
     "Pilih Bank Rekening Koran:",
@@ -110,7 +118,7 @@ pilihan_bank = st.radio(
     horizontal=True
 )
 
-st.markdown(f"Unggah **PDF Rekening Koran {pilihan_bank}** dan **Excel Catatan Pembukuan (Odoo / Accurate / Excel Manual)** untuk rekonsiliasi otomatis.")
+st.markdown(f"Unggah **PDF Rekening Koran {pilihan_bank}** dan **Excel Catatan Transaksi Internal (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
 # ============================================================
 # ANTARMUKA PENGGUNA (STREAMLIT UI)
 # ============================================================
@@ -123,7 +131,7 @@ with col1:
     )
 with col2:
     uploaded_book = st.file_uploader(
-        "2. Unggah Excel Catatan Pembukuan (.xlsx)",
+        "2. Unggah Excel General Ledger (.xlsx)",
         type=["xlsx"],
         key=f"book_{pilihan_bank}"
     )
@@ -215,7 +223,7 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                 m1.metric("Total Baris Laporan", len(df_laporan_final))
                 m2.metric("Cocok (MATCH)", jml_match)
                 m3.metric("Hanya di Bank", jml_bank_only)
-                m4.metric("Hanya di Pembukuan", jml_book_only)
+                m4.metric("Hanya di General Ledger", jml_book_only)
 
                 tab1, tab2 = st.tabs(["📊 Hasil Rekonsiliasi Lengkap", f"📄 Hasil Ekstraksi PDF {pilihan_bank}"])
                 with tab1:
