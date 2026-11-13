@@ -82,6 +82,8 @@ def perhalus_label_universal(df_export, df_laporan_final, pesan_audit):
         "& Odoo": "& General Ledger",
         "Total Odoo": "Total General Ledger",
         "| Odoo:": "| GL:"
+                "STATUS AUDIT": "CONTROL CHECK",
+
     }
 
     for lama, baru in ganti_teks.items():
@@ -258,10 +260,42 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                 with tab2:
                     st.dataframe(df_bank, use_container_width=True, height=450)
 
+                                from openpyxl.utils import get_column_letter
+
                 output_buffer = io.BytesIO()
                 with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
                     df_export.to_excel(writer, sheet_name="Hasil Rekonsiliasi", index=False)
                     df_bank.to_excel(writer, sheet_name=f"Ekstraksi PDF {pilihan_bank[:10]}", index=False)
+
+                    ws = writer.sheets["Hasil Rekonsiliasi"]
+                    headers = [cell.value for cell in ws]
+                    last_data_row = len(df_laporan_final) + 1
+                    row_total_rekon = last_data_row + 1
+                    row_total_asli = last_data_row + 2
+                    row_control_check = last_data_row + 3
+
+                    col_idx = {name: i + 1 for i, name in enumerate(headers)}
+                    col_letter = {name: get_column_letter(i + 1) for i, name in enumerate(headers)}
+
+                    # 1. Tulis rumus per baris di kolom "Selisih Bank dengan GL"
+                    if all(k in col_letter for k in ["Kredit", "Debet", "Debit", "Credit", "Selisih Bank dengan GL"]):
+                        c_kredit = col_letter["Kredit"]
+                        c_debet = col_letter["Debet"]
+                        c_debit = col_letter["Debit"]
+                        c_credit = col_letter["Credit"]
+                        idx_selisih = col_idx["Selisih Bank dengan GL"]
+
+                        for r in range(2, last_data_row + 1):
+                            ws.cell(row=r, column=idx_selisih).value = f"=({c_kredit}{r}-{c_debet}{r})-({c_debit}{r}-{c_credit}{r})"
+
+                    # 2. Tulis rumus =SUM(...) di baris TOTAL REKON & pengurangan di CONTROL CHECK
+                    for nama_kol in ["Debet", "Kredit", "Debit", "Credit", "Selisih Bank dengan GL"]:
+                        if nama_kol in col_idx:
+                            c_idx = col_idx[nama_kol]
+                            c_let = col_letter[nama_kol]
+                            ws.cell(row=row_total_rekon, column=c_idx).value = f"=SUM({c_let}2:{c_let}{last_data_row})"
+                            ws.cell(row=row_control_check, column=c_idx).value = f"={c_let}{row_total_rekon}-{c_let}{row_total_asli}"
+
 
                 nama_file_keluar = f"Hasil_Rekonsiliasi_{uploaded_pdf.name.replace('.pdf', '')}.xlsx"
                 st.download_button(
