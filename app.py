@@ -13,7 +13,8 @@ from modul_mandiri import ekstrak_pdf_mandiri, proses_rekonsiliasi_mandiri
 st.set_page_config(
     page_title="Rekonsiliasi Rekening Koran vs General Ledger",
     page_icon="🏦",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # ============================================================
