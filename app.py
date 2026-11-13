@@ -428,11 +428,23 @@ st.markdown(
     .stApp {
         background-color: #F4F7F6;
     }
-    [data-testid="stToolbar"] {
-        display: none;
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+    }
+    [data-testid="stToolbarActions"], [data-testid="stStatusWidget"] {
+        display: none !important;
+    }
+    button[data-testid="stExpandSidebarButton"], [data-testid="collapsedControl"] {
+        display: flex !important;
+        visibility: visible !important;
+        background-color: #6B8E78 !important;
+        color: #FFFFFF !important;
+        border-radius: 8px !important;
+        margin: 0.4rem !important;
     }
     section[data-testid="stSidebar"] {
         background-color: #6B8E78;
+        min-width: 260px !important;
     }
     section[data-testid="stSidebar"] * {
         color: #FFFFFF !important;
