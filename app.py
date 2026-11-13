@@ -83,7 +83,23 @@ def perhalus_label_universal(df_export, df_laporan_final, pesan_audit):
         "Total Odoo": "Total General Ledger",
         "| Odoo:": "| GL:"
     }
+def tambah_kolom_selisih(df_export, df_laporan_final):
+    nama_kolom = "Selisih Bank dengan GL"
 
+    for df in [df_laporan_final, df_export]:
+        kredit_bank = pd.to_numeric(df.get("Kredit", 0), errors="coerce").fillna(0)
+        debet_bank = pd.to_numeric(df.get("Debet", 0), errors="coerce").fillna(0)
+        debit_gl = pd.to_numeric(df.get("Debit", 0), errors="coerce").fillna(0)
+        credit_gl = pd.to_numeric(df.get("Credit", 0), errors="coerce").fillna(0)
+
+        df[nama_kolom] = ((kredit_bank - debet_bank) - (debit_gl - credit_gl)).round(2)
+
+    # Pastikan baris TOTAL REKON di df_export menampilkan SUM bersih dari seluruh baris transaksi
+    mask_transaksi = ~df_export["Tanggal_Clean"].isin(["TOTAL REKON", "TOTAL ASLI", "STATUS AUDIT"])
+    total_selisih_sum = round(df_export.loc[mask_transaksi, nama_kolom].sum(), 2)
+    df_export.loc[df_export["Tanggal_Clean"] == "TOTAL REKON", nama_kolom] = total_selisih_sum
+
+    return df_export, df_laporan_final
     for lama, baru in ganti_teks.items():
         df_export["Tanggal_Clean"] = df_export["Tanggal_Clean"].astype(str).str.replace(lama, baru, regex=False)
         df_export["Status_Rekonsiliasi"] = df_export["Status_Rekonsiliasi"].astype(str).str.replace(lama, baru, regex=False)
@@ -202,7 +218,7 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                     df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_mandiri(df_bank.copy(), df_book_normalized)
 
                 df_export, df_laporan_final, pesan_audit = perhalus_label_universal(df_export, df_laporan_final, pesan_audit)
-
+df_export, df_laporan_final = tambah_kolom_selisih(df_export, df_laporan_final)
                 st.divider()
 
                 if len(pdf_errors) == 0:
