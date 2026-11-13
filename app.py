@@ -679,10 +679,10 @@ if uploaded_pdfs and uploaded_book and df_book_raw is not None:
                         default=df_laporan_final['Status_Rekonsiliasi'].unique().tolist()
                     )
                 df_tampil = df_laporan_final[
-                    (df_laporan_final['Tanggal_Clean'].astype(str).str[:7].isin(filter_bulan))
-                    & (df_laporan_final['Status_Rekonsiliasi'].isin(filter_status))
-                ]
-                                    def warnai_baris_status(row):
+                        (df_laporan_final['Tanggal_Clean'].astype(str).str[:7].isin(filter_bulan))
+                        & (df_laporan_final['Status_Rekonsiliasi'].isin(filter_status))
+                    ]
+                    def warnai_baris_status(row):
                         status = str(row.get("Status_Rekonsiliasi", ""))
                         if status.startswith("MATCH"):
                             return ["background-color: #F0FDF4"] * len(row)
@@ -698,8 +698,6 @@ if uploaded_pdfs and uploaded_book and df_book_raw is not None:
                         use_container_width=True,
                         height=450
                     )
-
-
             with tab2:
                 fmt_bank = {k: v for k, v in fmt_uang.items() if k in df_bank.columns}
                 st.dataframe(df_bank.style.format(fmt_bank), use_container_width=True, height=450)
