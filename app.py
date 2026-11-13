@@ -418,6 +418,20 @@ def buat_excel_dengan_kontrol_bulanan(df_laporan_final, df_bank, df_gl_norm, df_
                 s_ws.column_dimensions[get_column_letter(idx_h)].width = max(min(max_len + 5, 55), 16)
 
     return output_buffer.getvalue()
+420     return output_buffer.getvalue()
+421
+422 def warnai_baris_status(row):
+423     status = str(row.get("Status_Rekonsiliasi", ""))
+424     if status.startswith("MATCH"):
+425         return ["background-color: #F0FDF4"] * len(row)
+426     elif status.startswith(("NETTING JAGIR", "KONTRA BANK")):
+427         return ["background-color: #EFF6FF"] * len(row)
+428     elif status.startswith(("HANYA DI", "SELISIH")):
+429         return ["background-color: #FEF2F2"] * len(row)
+430     return [""] * len(row)
+431
+432 # ============================================================
+433 # CSS ENTERPRISE WORKSPACE (SAGE GREEN & CALM UI)
 
 # ============================================================
 # CSS ENTERPRISE WORKSPACE (SAGE GREEN & CALM UI)
