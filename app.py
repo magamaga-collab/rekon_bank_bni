@@ -268,7 +268,7 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                     df_bank.to_excel(writer, sheet_name=f"Ekstraksi PDF {pilihan_bank[:10]}", index=False)
 
                     ws = writer.sheets["Hasil Rekonsiliasi"]
-                    headers = [cell.value for cell in ws]
+                    headers = [cell.value for cell in ws[1]]
                     last_data_row = len(df_laporan_final) + 1
                     row_total_rekon = last_data_row + 1
                     row_total_asli = last_data_row + 2
