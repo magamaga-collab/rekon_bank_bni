@@ -117,7 +117,50 @@ def tambah_kolom_selisih(df_export, df_laporan_final):
     df_export.loc[df_export["Tanggal_Clean"] == "TOTAL REKON", nama_kolom] = total_selisih_sum
 
     return df_export, df_laporan_final
+def cek_kelengkapan_bulan(df_bank, df_gl):
+    tgl_bank = pd.to_datetime(df_bank["Tanggal"], errors="coerce").dropna()
+    tgl_gl = pd.to_datetime(df_gl["Date"], errors="coerce").dropna()
 
+    bulan_bank = sorted(tgl_bank.dt.strftime("%Y-%m").unique().tolist())
+    bulan_gl = sorted(tgl_gl.dt.strftime("%Y-%m").unique().tolist())
+
+    hilang_di_gl = sorted(list(set(bulan_bank) - set(bulan_gl)))
+    hilang_di_bank = sorted(list(set(bulan_gl) - set(bulan_bank)))
+    return bulan_bank, bulan_gl, hilang_di_gl, hilang_di_bank
+
+
+def buat_rekap_per_bulan(df_laporan_final):
+    df_temp = df_laporan_final.copy()
+    df_temp["Bulan"] = df_temp["Tanggal_Clean"].astype(str).str[:7]
+
+    rekap_rows = []
+    for bln, grp in df_temp.groupby("Bulan", sort=True):
+        debet_b = round(grp["Debet"].fillna(0).sum(), 2)
+        kredit_b = round(grp["Kredit"].fillna(0).sum(), 2)
+        debit_g = round(grp["Debit"].fillna(0).sum(), 2)
+        credit_g = round(grp["Credit"].fillna(0).sum(), 2)
+        selisih_net = round((kredit_b - debet_b) - (debit_g - credit_g), 2)
+        jml_unmatched = grp[~grp["Status_Rekonsiliasi"].str.startswith(("MATCH", "NETTING JAGIR", "KONTRA BANK"))].shape[0]
+
+        if selisih_net == 0 and jml_unmatched == 0:
+            status = "✅ COCOK 100%"
+        elif selisih_net == 0 and jml_unmatched > 0:
+            status = f"⚠️ NETT NOL ({jml_unmatched} Baris Belum Cocok)"
+        else:
+            status = f"❌ ADA SELISIH ({jml_unmatched} Baris Belum Cocok)"
+
+        rekap_rows.append({
+            "Bulan": bln,
+            "Debet Bank": debet_b,
+            "Kredit Bank": kredit_b,
+            "Debit GL": debit_g,
+            "Credit GL": credit_g,
+            "Selisih Bank dengan GL": selisih_net,
+            "Baris Belum Match": jml_unmatched,
+            "Status Bulan": status
+        })
+
+    return pd.DataFrame(rekap_rows)
 
 # ============================================================
 # HEADER & PILIHAN BANK
@@ -140,13 +183,15 @@ pilihan_bank = st.radio(
 
 st.markdown(f"Unggah **PDF Rekening Koran {pilihan_bank}** dan **Excel Catatan Transaksi Internal/GL (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
 # ============================================================
+# ============================================================
 # ANTARMUKA PENGGUNA (STREAMLIT UI)
 # ============================================================
 col1, col2 = st.columns(2)
 with col1:
-    uploaded_pdf = st.file_uploader(
-        f"1. Unggah Rekening Koran {pilihan_bank} (.pdf)",
+    uploaded_pdfs = st.file_uploader(
+        f"1. Unggah Rekening Koran {pilihan_bank} (.pdf — Bisa 1 s.d. 12 Bulan Sekaligus)",
         type=["pdf"],
+        accept_multiple_files=True,
         key=f"pdf_{pilihan_bank}"
     )
 with col2:
@@ -166,8 +211,8 @@ if uploaded_book:
 
     wajib_lengkap = all(auto_map[k] is not None for k in ["Date", "Label", "Debit", "Credit"])
 
-    with st.expander("⚙️ Pengaturan Pemetaan Kolom Pembukuan (Otomatis Terdeteksi)", expanded=not wajib_lengkap):
-        st.caption("Sistem otomatis mencocokkan nama kolom dari Odoo, Accurate, maupun Excel manual. Ubah jika diperlukan:")
+    with st.expander("⚙️ Pengaturan Pemetaan Kolom General Ledger (Otomatis Terdeteksi)", expanded=not wajib_lengkap):
+        st.caption("Sistem otomatis mencocokkan nama kolom dari sistem akuntansi/ERP maupun Excel manual. Ubah jika diperlukan:")
         m_col1, m_col2, m_col3, m_col4 = st.columns(4)
         with m_col1:
             mapping_kolom["Date"] = st.selectbox(
@@ -208,25 +253,56 @@ if uploaded_book:
                 options=opsi_opsional,
                 index=opsi_opsional.index(auto_map["Partner"]) if auto_map["Partner"] in opsi_opsional else 0
             )
-if uploaded_pdf and uploaded_book and df_book_raw is not None:
-    if st.button(f"🚀 Proses Rekonsiliasi {pilihan_bank} Sekarang", type="primary", use_container_width=True):
-        with st.spinner(f"Sedang mengekstrak PDF {pilihan_bank} dan mencocokkan dengan catatan pembukuan..."):
+if uploaded_pdfs and uploaded_book and df_book_raw is not None:
+    label_tombol = f"🚀 Proses Rekonsiliasi {pilihan_bank} ({len(uploaded_pdfs)} File PDF)" if len(uploaded_pdfs) > 1 else f"🚀 Proses Rekonsiliasi {pilihan_bank} Sekarang"
+    if st.button(label_tombol, type="primary", use_container_width=True):
+        with st.spinner(f"Sedang mengekstrak {len(uploaded_pdfs)} PDF {pilihan_bank} dan mencocokkan dengan General Ledger..."):
             try:
                 df_book_normalized = normalisasi_excel_pembukuan(df_book_raw, mapping_kolom)
 
+                hasil_ekstraksi_list = []
+                for pdf_item in uploaded_pdfs:
+                    if pilihan_bank == "BNI Direct":
+                        df_p, s_awal, s_akhir, err_p = ekstrak_pdf_bni(pdf_item)
+                    else:
+                        df_p, s_awal, s_akhir, err_p = ekstrak_pdf_mandiri(pdf_item)
+
+                    df_p["Sumber_File"] = pdf_item.name
+                    tgl_awal_file = pd.to_datetime(df_p["Tanggal"]).min()
+                    hasil_ekstraksi_list.append({
+                        "nama": pdf_item.name,
+                        "tgl_awal": tgl_awal_file,
+                        "df": df_p,
+                        "saldo_awal": s_awal,
+                        "saldo_akhir": s_akhir,
+                        "errors": err_p
+                    })
+
+                hasil_ekstraksi_list.sort(key=lambda x: x["tgl_awal"])
+                df_bank = pd.concat([x["df"] for x in hasil_ekstraksi_list], ignore_index=True)
+                saldo_awal = hasil_ekstraksi_list[0]["saldo_awal"]
+                saldo_akhir = hasil_ekstraksi_list[-1]["saldo_akhir"]
+                pdf_errors = [err for x in hasil_ekstraksi_list for err in x["errors"]]
+
+                bulan_bank, bulan_gl, hilang_di_gl, hilang_di_bank = cek_kelengkapan_bulan(df_bank, df_book_normalized)
+
                 if pilihan_bank == "BNI Direct":
-                    df_bank, saldo_awal, saldo_akhir, pdf_errors = ekstrak_pdf_bni(uploaded_pdf)
                     df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_bni(df_bank.copy(), df_book_normalized)
                 else:
-                    df_bank, saldo_awal, saldo_akhir, pdf_errors = ekstrak_pdf_mandiri(uploaded_pdf)
                     df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_mandiri(df_bank.copy(), df_book_normalized)
 
                 df_export, df_laporan_final, pesan_audit = perhalus_label_universal(df_export, df_laporan_final, pesan_audit)
                 df_export, df_laporan_final = tambah_kolom_selisih(df_export, df_laporan_final)
+                df_rekap_bulan = buat_rekap_per_bulan(df_laporan_final)
                 st.divider()
 
+                if hilang_di_gl:
+                    st.warning(f"⚠️ **PERINGATAN KELENGKAPAN GENERAL LEDGER:** PDF Rekening Koran mencakup **{len(bulan_bank)} bulan** (`{bulan_bank[0]}` s.d. `{bulan_bank[-1]}`), tetapi file General Ledger **tidak memiliki data transaksi** pada bulan: **{', '.join(hilang_di_gl)}**.")
+                if hilang_di_bank:
+                    st.warning(f"⚠️ **PERINGATAN KELENGKAPAN PDF BANK:** File General Ledger memiliki transaksi pada bulan **{', '.join(hilang_di_bank)}** yang belum diunggah file PDF Rekening Korannya.")
+
                 if len(pdf_errors) == 0:
-                    st.success(f"**Ekstraksi PDF {pilihan_bank} Valid 100%!** ({len(df_bank)} transaksi | Saldo Awal: Rp {saldo_awal:,.2f} → Saldo Akhir: Rp {saldo_akhir:,.2f})")
+                    st.success(f"**Ekstraksi {len(uploaded_pdfs)} PDF {pilihan_bank} Valid 100%!** ({len(df_bank)} transaksi | Saldo Awal: Rp {saldo_awal:,.2f} → Saldo Akhir: Rp {saldo_akhir:,.2f})")
                 else:
                     st.warning(f"Ditemukan {len(pdf_errors)} baris selisih pada pembacaan saldo PDF.")
 
@@ -238,33 +314,48 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                 m1, m2, m3, m4 = st.columns(4)
                 jml_match = df_laporan_final['Status_Rekonsiliasi'].str.startswith('MATCH').sum()
                 jml_bank_only = df_laporan_final['Status_Rekonsiliasi'].str.startswith('HANYA DI BANK').sum()
-                jml_book_only = df_laporan_final['Status_Rekonsiliasi'].str.startswith('HANYA DI PEMBUKUAN').sum()
+                jml_book_only = df_laporan_final['Status_Rekonsiliasi'].str.startswith('HANYA DI GENERAL LEDGER').sum()
 
                 m1.metric("Total Baris Laporan", len(df_laporan_final))
                 m2.metric("Cocok (MATCH)", jml_match)
                 m3.metric("Hanya di Bank", jml_bank_only)
                 m4.metric("Hanya di General Ledger", jml_book_only)
 
-                tab1, tab2 = st.tabs(["📊 Hasil Rekonsiliasi Lengkap", f"📄 Hasil Ekstraksi PDF {pilihan_bank}"])
+                tab_rekap, tab1, tab2 = st.tabs([
+                    "📅 Rekap Selisih Per Bulan",
+                    "📊 Hasil Rekonsiliasi Lengkap",
+                    f"📄 Hasil Ekstraksi PDF {pilihan_bank}"
+                ])
+
+                with tab_rekap:
+                    st.caption("Ringkasan total mutasi dan selisih per bulan untuk memudahkan pelacakan bulan yang berselisih:")
+                    st.dataframe(df_rekap_bulan, use_container_width=True)
+
                 with tab1:
-                    filter_status = st.multiselect(
-                        "Filter Status Rekonsiliasi:",
-                        options=df_laporan_final['Status_Rekonsiliasi'].unique().tolist(),
-                        default=df_laporan_final['Status_Rekonsiliasi'].unique().tolist()
-                    )
-                    st.dataframe(
-                        df_laporan_final[df_laporan_final['Status_Rekonsiliasi'].isin(filter_status)],
-                        use_container_width=True,
-                        height=450
-                    )
+                    f_col1, f_col2 = st.columns(2)
+                    with f_col1:
+                        opsi_bulan = sorted(df_laporan_final['Tanggal_Clean'].astype(str).str[:7].unique().tolist())
+                        filter_bulan = st.multiselect("Filter Bulan:", options=opsi_bulan, default=opsi_bulan)
+                    with f_col2:
+                        filter_status = st.multiselect(
+                            "Filter Status Rekonsiliasi:",
+                            options=df_laporan_final['Status_Rekonsiliasi'].unique().tolist(),
+                            default=df_laporan_final['Status_Rekonsiliasi'].unique().tolist()
+                        )
+                    df_tampil = df_laporan_final[
+                        (df_laporan_final['Tanggal_Clean'].astype(str).str[:7].isin(filter_bulan))
+                        & (df_laporan_final['Status_Rekonsiliasi'].isin(filter_status))
+                    ]
+                    st.dataframe(df_tampil, use_container_width=True, height=450)
+
                 with tab2:
                     st.dataframe(df_bank, use_container_width=True, height=450)
-
                 from openpyxl.utils import get_column_letter
 
                 output_buffer = io.BytesIO()
                 with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
                     df_export.to_excel(writer, sheet_name="Hasil Rekonsiliasi", index=False)
+                    df_rekap_bulan.to_excel(writer, sheet_name="Rekap Per Bulan", index=False)
                     df_bank.to_excel(writer, sheet_name=f"Ekstraksi PDF {pilihan_bank[:10]}", index=False)
 
                     ws = writer.sheets["Hasil Rekonsiliasi"]
@@ -277,7 +368,6 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                     col_idx = {name: i + 1 for i, name in enumerate(headers)}
                     col_letter = {name: get_column_letter(i + 1) for i, name in enumerate(headers)}
 
-                    # 1. Tulis rumus per baris di kolom "Selisih Bank dengan GL"
                     if all(k in col_letter for k in ["Kredit", "Debet", "Debit", "Credit", "Selisih Bank dengan GL"]):
                         c_kredit = col_letter["Kredit"]
                         c_debet = col_letter["Debet"]
@@ -288,7 +378,6 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                         for r in range(2, last_data_row + 1):
                             ws.cell(row=r, column=idx_selisih).value = f"=({c_kredit}{r}-{c_debet}{r})-({c_debit}{r}-{c_credit}{r})"
 
-                    # 2. Tulis rumus =SUM(...) murni di baris TOTAL REKON & pengurangan di CONTROL CHECK
                     for nama_kol in ["Debet", "Kredit", "Debit", "Credit", "Selisih Bank dengan GL"]:
                         if nama_kol in col_idx:
                             c_idx = col_idx[nama_kol]
@@ -296,7 +385,8 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
                             ws.cell(row=row_total_rekon, column=c_idx).value = f"=SUM({c_let}2:{c_let}{last_data_row})"
                             ws.cell(row=row_control_check, column=c_idx).value = f"={c_let}{row_total_rekon}-{c_let}{row_total_asli}"
 
-                nama_file_keluar = f"Hasil_Rekonsiliasi_{uploaded_pdf.name.replace('.pdf', '')}.xlsx"
+                nama_prefix = f"{len(uploaded_pdfs)}_Bulan_{pilihan_bank.replace(' ', '_')}" if len(uploaded_pdfs) > 1 else uploaded_pdfs[0].name.replace('.pdf', '')
+                nama_file_keluar = f"Hasil_Rekonsiliasi_{nama_prefix}.xlsx"
                 st.download_button(
                     label=f"📥 Download Hasil Rekonsiliasi {pilihan_bank} (.xlsx)",
                     data=output_buffer.getvalue(),
@@ -308,3 +398,4 @@ if uploaded_pdf and uploaded_book and df_book_raw is not None:
 
             except Exception as e:
                 st.error(f"Terjadi kesalahan saat memproses file: {e}")
+
