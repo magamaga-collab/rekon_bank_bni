@@ -204,32 +204,42 @@ def proses_rekonsiliasi_mandiri(df_bank_raw, df_odoo_raw):
     df_bank['Keterangan_Upper'] = df_bank['Keterangan'].astype(str).str.upper()
     df_odoo['Label_Upper'] = df_odoo['Label'].astype(str).str.upper()
 
-    # 1. Akumulasi Biaya Admin (Maksimal Rp249.000 & Khusus Keluar)
+        # 1. Akumulasi Biaya Admin (Dikelompokkan Per Bulan agar Aman untuk 1 Bulan maupun 12 Bulan)
     filter_bank_fee = (
         df_bank['Keterangan_Upper'].str.contains('TRANSACTION FEE|BIAYA ADM|TRANSFER FEE|INHOUSETRF KE GNC')
         & (df_bank['Debet'] > 0) & (df_bank['Debet'] <= 249000)
     )
-    total_fee_bank = df_bank[filter_bank_fee]['Debet'].sum()
 
     filter_odoo_fee = (
         df_odoo['Label_Upper'].str.contains('BY TRANSFER|BIAYA ADM|ADM MAN|ADM BNI')
         & ~df_odoo['Label_Upper'].str.contains('NET JAGIR|VENDOR PAYMENT')
         & (df_odoo['Credit'] > 0)
     )
-    total_fee_odoo = df_odoo[filter_odoo_fee]['Credit'].sum()
 
+    df_bank_fee_sub = df_bank[filter_bank_fee].copy()
+    df_odoo_fee_sub = df_odoo[filter_odoo_fee].copy()
+    df_bank_fee_sub['Bulan_Fee'] = df_bank_fee_sub['Tanggal_Clean'].str[:7]
+    df_odoo_fee_sub['Bulan_Fee'] = df_odoo_fee_sub['Tanggal_Clean'].str[:7]
+
+    semua_bulan_fee = sorted(set(df_bank_fee_sub['Bulan_Fee'].dropna()) | set(df_odoo_fee_sub['Bulan_Fee'].dropna()))
     rekon_fee_rows = []
-    if total_fee_bank > 0 or total_fee_odoo > 0:
+    for bln in semua_bulan_fee:
+        b_sub_bln = df_bank_fee_sub[df_bank_fee_sub['Bulan_Fee'] == bln]
+        o_sub_bln = df_odoo_fee_sub[df_odoo_fee_sub['Bulan_Fee'] == bln]
+        total_fee_bank = b_sub_bln['Debet'].sum()
+        total_fee_odoo = o_sub_bln['Credit'].sum()
+        tgl_fee = b_sub_bln['Tanggal_Clean'].max() if not b_sub_bln.empty else o_sub_bln['Tanggal_Clean'].max()
         status_fee = 'MATCH (Total Biaya Admin Cocok)' if round(total_fee_bank, 2) == round(total_fee_odoo, 2) else 'SELISIH BIAYA ADMIN'
         rekon_fee_rows.append({
-            'Tanggal_Clean': df_bank[filter_bank_fee]['Tanggal_Clean'].max() if not df_bank[filter_bank_fee].empty else df_odoo[filter_odoo_fee]['Tanggal_Clean'].max(),
+            'Tanggal_Clean': tgl_fee,
             'Status_Rekonsiliasi': status_fee, 'Tipe': 'Keluar (Total Fee)',
-            'Keterangan': f"Akumulasi Transaction Fee & Admin Bank Koran (Total: Rp{total_fee_bank:,.2f})",
+            'Keterangan': f"Akumulasi Transaction Fee & Admin Bank Koran [{bln}] (Total: Rp{total_fee_bank:,.2f})",
             'Debet': total_fee_bank, 'Kredit': 0.0,
-            'Label': f"Total Catatan Admin di Odoo (Total: Rp{total_fee_odoo:,.2f})",
+            'Label': f"Total Catatan Admin di Odoo [{bln}] (Total: Rp{total_fee_odoo:,.2f})",
             'Credit': total_fee_odoo, 'Debit': 0.0
         })
     df_rekon_fee = pd.DataFrame(rekon_fee_rows)
+
 
     # 2. Net Jagir Akhir Bulan (Tampil Kotor Apa Adanya agar SUM Footer 100% Sama dengan PDF)
     filter_bunga_pajak_bank = df_bank['Keterangan_Upper'].str.contains('BUNGA|PAJAK')
