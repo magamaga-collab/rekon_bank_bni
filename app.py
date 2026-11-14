@@ -536,8 +536,8 @@ with st.sidebar:
         <div style="padding-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 10px;">
             <div style="background: rgba(255,255,255,0.22); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700;">F</div>
             <div>
-                <div style="font-weight: 600; font-size: 0.92rem;">Ferdy</div>
-                <div style="font-size: 0.75rem; opacity: 0.85;">Finance & Audit Lead</div>
+                <div style="font-weight: 600; font-size: 0.92rem;">github.com</div>
+                <div style="font-size: 0.75rem; opacity: 0.85;">maga-maga-collab Lead</div>
             </div>
         </div>
         """,
