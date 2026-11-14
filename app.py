@@ -692,14 +692,14 @@ elif menu_aktif == "🔄 Reconciliation":
     )
 
     col1, col2 = st.columns(2)
-        with col1:
+    with col1:
             uploaded_pdfs = st.file_uploader(
                 f"1. Unggah Rekening Koran {pilihan_bank} (.pdf)",
                 type=["pdf"],
                 accept_multiple_files=True,
                 key=f"pdf_{pilihan_bank}"
             )
-        with col2:
+    with col2:
             uploaded_book = st.file_uploader(
                 "2. Unggah Excel General Ledger (.xlsx)",
                 type=["xlsx"],
