@@ -682,8 +682,8 @@ elif menu_aktif == "🔄 Reconciliation":
     
 stepper_slot = st.empty()
 
-col1, col2 = st.columns(2)
-with col1:
+    col1, col2 = st.columns(2)
+    with col1:
         uploaded_pdfs = st.file_uploader(
             f"1. Unggah Rekening Koran {pilihan_bank} (.pdf)",
             type=["pdf"],
@@ -696,6 +696,7 @@ with col1:
             type=["xlsx"],
             key=f"book_{pilihan_bank}"
         )
+
 
     # Hitung status progress unggahan secara dinamis (0%, 50%, atau 100%)
     ada_pdf = bool(uploaded_pdfs)
