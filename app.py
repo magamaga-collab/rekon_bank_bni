@@ -692,8 +692,6 @@ elif menu_aktif == "🔄 Reconciliation":
     )
 
     col1, col2 = st.columns(2)
-
-        col1, col2 = st.columns(2)
         with col1:
             uploaded_pdfs = st.file_uploader(
                 f"1. Unggah Rekening Koran {pilihan_bank} (.pdf)",
