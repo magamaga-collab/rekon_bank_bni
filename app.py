@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# HALAMAN LOGIN PASSWORD (ENTERPRISE CALM UI)
+# HALAMAN LOGIN PASSWORD (SELARAS TEMA SAGE GREEN REKON PRO)
 # ============================================================
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -27,81 +27,100 @@ if not st.session_state.authenticated:
     st.markdown(
         """
         <style>
+        /* Sembunyikan sidebar & header bawaan di halaman login */
+        [data-testid="stSidebar"], [data-testid="collapsedControl"], header[data-testid="stHeader"] {
+            display: none !important;
+        }
+        /* Warna latar belakang lembut selaras halaman utama */
         .stApp {
-            background-color: #F4F7FA;
+            background-color: #F4F6F5;
         }
-        header[data-testid="stHeader"] {
-            background: transparent;
-        }
-        [data-testid="stToolbar"] {
-            display: none;
-        }
-        div[data-testid="stForm"] {
+        /* Kartu Login Tengah */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #FFFFFF;
-            padding: 2.2rem 2rem;
+            border: 1px solid #DCE3DF;
+            border-top: 5px solid #5B7B65;
             border-radius: 14px;
-            border: 1px solid #E2E8F0;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+            box-shadow: 0 10px 30px rgba(45, 65, 53, 0.08);
+            padding: 2rem 2.2rem 1.8rem 2.2rem;
+            margin-top: 4vh;
         }
-        div[data-testid="stForm"] button[kind="primaryFormSubmit"] {
-            background-color: #1E3A8A;
-            border-color: #1E3A8A;
-            color: #FFFFFF;
+        /* Input Password */
+        div[data-testid="stTextInput"] input {
+            background-color: #F8FAF9;
+            border: 1px solid #CBD5D0;
+            border-radius: 8px;
+            padding: 0.6rem 0.85rem;
+            color: #1F2933;
+        }
+        div[data-testid="stTextInput"] input:focus {
+            border-color: #5B7B65;
+            box-shadow: 0 0 0 2px rgba(91, 123, 101, 0.2);
+        }
+        /* Tombol Masuk Hijau Sage */
+        div[data-testid="stButton"] > button[kind="primary"] {
+            background-color: #5B7B65 !important;
+            border: none !important;
+            color: #FFFFFF !important;
             font-weight: 600;
             border-radius: 8px;
-            padding: 0.55rem 1rem;
+            padding: 0.6rem 1rem;
+            transition: all 0.2s ease;
         }
-        div[data-testid="stForm"] button[kind="primaryFormSubmit"]:hover {
-            background-color: #1D4ED8;
-            border-color: #1D4ED8;
+        div[data-testid="stButton"] > button[kind="primary"]:hover {
+            background-color: #496552 !important;
+            box-shadow: 0 4px 12px rgba(91, 123, 101, 0.28);
         }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-    st.write("")
-    st.write("")
     _, col_center, _ = st.columns([1.2, 1.3, 1.2])
-
     with col_center:
-        with st.form("login_form", clear_on_submit=False):
+        with st.container(border=True):
             st.markdown(
                 """
                 <div style="text-align: center; margin-bottom: 1.2rem;">
-                    <div style="font-size: 2.2rem; margin-bottom: 0.2rem;">🏦</div>
-                    <h3 style="margin: 0; color: #0F172A; font-weight: 700;">
+                    <div style="display: inline-block; background-color: #EBF1ED; color: #496552;
+                                font-size: 0.72rem; font-weight: 700; letter-spacing: 0.8px;
+                                padding: 4px 12px; border-radius: 20px; margin-bottom: 10px;">
+                        REKON PRO • ENTERPRISE WORKSPACE
+                    </div>
+                    <div style="font-size: 2.2rem; line-height: 1.1; margin-bottom: 6px;">🏦</div>
+                    <h2 style="margin: 0; font-size: 1.45rem; color: #1E2923; font-weight: 700;">
                         Rekonsiliasi Bank vs GL
-                        <sup style="font-size: 0.5em; color: #64748B; font-weight: 600;">by FERDX</sup>
-                    </h3>
-                    <p style="margin: 0.35rem 0 0 0; font-size: 0.88rem; color: #64748B;">
-                        Enterprise Automated Reconciliation Workspace
+                        <sup style="font-size: 0.55em; font-weight: 600; color: #6B7B72;">by FERDX</sup>
+                    </h2>
+                    <p style="margin: 6px 0 0 0; font-size: 0.85rem; color: #6B7B72;">
+                        Automated Bank Statement & General Ledger Reconciliation
                     </p>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-            pwd = st.text_input("Password Akses", type="password", placeholder="Masukkan kata sandi tim...", autocomplete="current-password")
-            st.write("")
-            submitted = st.form_submit_button("🔐 Masuk ke Aplikasi", type="primary", use_container_width=True)
+            pwd = st.text_input("Password Akses", type="password", placeholder="Masukkan kata sandi tim...")
+            st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
 
-            if submitted:
+            if st.button("🔐 Masuk ke Aplikasi", type="primary", use_container_width=True):
                 if pwd == st.secrets["APP_PASSWORD"]:
                     st.session_state.authenticated = True
                     st.rerun()
                 else:
-                    st.error("Password salah! Silakan periksa kembali.")
+                    st.error("Password salah! Silakan coba lagi.")
 
             st.markdown(
                 """
-                <div style="text-align: center; margin-top: 1rem; font-size: 0.78rem; color: #94A3B8;">
+                <div style="text-align: center; margin-top: 1.2rem; padding-top: 0.8rem;
+                            border-top: 1px solid #EEF2F0; font-size: 0.75rem; color: #8A9990;">
                     🔒 Akses Terbatas • Pemrosesan Aman di Memori
                 </div>
                 """,
                 unsafe_allow_html=True
             )
     st.stop()
+
 
 
 
