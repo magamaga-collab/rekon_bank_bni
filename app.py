@@ -680,7 +680,7 @@ elif menu_aktif == "🔄 Reconciliation":
 
     
     
-stepper_slot = st.empty()
+    stepper_slot = st.empty()
 
     col1, col2 = st.columns(2)
     with col1:
@@ -696,6 +696,7 @@ stepper_slot = st.empty()
             type=["xlsx"],
             key=f"book_{pilihan_bank}"
         )
+
 
 
     # Hitung status progress unggahan secara dinamis (0%, 50%, atau 100%)
