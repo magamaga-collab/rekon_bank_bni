@@ -679,24 +679,11 @@ elif menu_aktif == "🔄 Reconciliation":
     st.caption(f"Unggah **PDF Rekening Koran {pilihan_bank}** (1 s.d. 12 bulan) dan **Excel Catatan Transaksi Internal (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
 
     
-    col1, col2 = st.columns(2)
-    with col1:
-            uploaded_pdfs = st.file_uploader(
-                f"1. Unggah Rekening Koran {pilihan_bank} (.pdf)",
-                type=["pdf"],
-                accept_multiple_files=True,
-                key=f"pdf_{pilihan_bank}"
-            )
-    with col2:
-            uploaded_book = st.file_uploader(
-                "2. Unggah Excel General Ledger (.xlsx)",
-                type=["xlsx"],
-                key=f"book_{pilihan_bank}"
-            )
+    
 stepper_slot = st.empty()
 
-    col1, col2 = st.columns(2)
-    with col1:
+col1, col2 = st.columns(2)
+with col1:
         uploaded_pdfs = st.file_uploader(
             f"1. Unggah Rekening Koran {pilihan_bank} (.pdf)",
             type=["pdf"],
