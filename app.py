@@ -926,51 +926,51 @@ elif menu_aktif == "🔄 Reconciliation":
             ])
 
             # Konfigurasi Format Angka Accounting untuk Tabel Layar
-                cfg_uang = st.column_config.NumberColumn(format="accounting")
+            cfg_uang = st.column_config.NumberColumn(format="accounting")
             config_rekap = {
-                    "Debet Bank": cfg_uang,
-                    "Kredit Bank": cfg_uang,
-                    "Debit GL": cfg_uang,
-                    "Credit GL": cfg_uang,
-                    "Selisih Bank dengan GL": cfg_uang,
-                }
+                "Debet Bank": cfg_uang,
+                "Kredit Bank": cfg_uang,
+                "Debit GL": cfg_uang,
+                "Credit GL": cfg_uang,
+                "Selisih Bank dengan GL": cfg_uang,
+            }
             config_lengkap = {
-                    "Debet": cfg_uang,
-                    "Kredit": cfg_uang,
-                    "Saldo": cfg_uang,
-                    "Debit": cfg_uang,
-                    "Credit": cfg_uang,
-                    "Selisih Bank dengan GL": cfg_uang,
-                }
+                "Debet": cfg_uang,
+                "Kredit": cfg_uang,
+                "Saldo": cfg_uang,
+                "Debit": cfg_uang,
+                "Credit": cfg_uang,
+                "Selisih Bank dengan GL": cfg_uang,
+            }
             config_ekstraksi = {
-                    "Debet": cfg_uang,
-                    "Kredit": cfg_uang,
-                    "Saldo": cfg_uang,
-                }
+                "Debet": cfg_uang,
+                "Kredit": cfg_uang,
+                "Saldo": cfg_uang,
+            }
 
             with tab_rekap:
-                    st.caption("Ringkasan total mutasi dan selisih per bulan untuk memudahkan pelacakan bulan yang berselisih:")
-                    st.dataframe(df_rekap_bulan, column_config=config_rekap, use_container_width=True)
+                st.caption("Ringkasan total mutasi dan selisih per bulan untuk memudahkan pelacakan bulan yang berselisih:")
+                st.dataframe(df_rekap_bulan, column_config=config_rekap, use_container_width=True)
 
             with tab1:
-                    f_col1, f_col2 = st.columns(2)
-                    with f_col1:
-                        opsi_bulan = sorted(df_laporan_final['Tanggal_Clean'].astype(str).str[:7].unique().tolist())
-                        filter_bulan = st.multiselect("Filter Bulan:", options=opsi_bulan, default=opsi_bulan)
-                    with f_col2:
-                        filter_status = st.multiselect(
-                            "Filter Status Rekonsiliasi:",
-                            options=df_laporan_final['Status_Rekonsiliasi'].unique().tolist(),
-                            default=df_laporan_final['Status_Rekonsiliasi'].unique().tolist()
-                        )
-                    df_tampil = df_laporan_final[
-                        (df_laporan_final['Tanggal_Clean'].astype(str).str[:7].isin(filter_bulan))
-                        & (df_laporan_final['Status_Rekonsiliasi'].isin(filter_status))
-                    ]
-                    st.dataframe(df_tampil, column_config=config_lengkap, use_container_width=True, height=450)
+                f_col1, f_col2 = st.columns(2)
+                with f_col1:
+                    opsi_bulan = sorted(df_laporan_final['Tanggal_Clean'].astype(str).str[:7].unique().tolist())
+                    filter_bulan = st.multiselect("Filter Bulan:", options=opsi_bulan, default=opsi_bulan)
+                with f_col2:
+                    filter_status = st.multiselect(
+                        "Filter Status Rekonsiliasi:",
+                        options=df_laporan_final['Status_Rekonsiliasi'].unique().tolist(),
+                        default=df_laporan_final['Status_Rekonsiliasi'].unique().tolist()
+                    )
+                df_tampil = df_laporan_final[
+                    (df_laporan_final['Tanggal_Clean'].astype(str).str[:7].isin(filter_bulan))
+                    & (df_laporan_final['Status_Rekonsiliasi'].isin(filter_status))
+                ]
+                st.dataframe(df_tampil, column_config=config_lengkap, use_container_width=True, height=450)
 
             with tab2:
-                    st.dataframe(df_bank, column_config=config_ekstraksi, use_container_width=True, height=450)
+                st.dataframe(df_bank, column_config=config_ekstraksi, use_container_width=True, height=450)
 
         st.download_button(
             label=f"📥 Download Hasil Rekonsiliasi {res['pilihan_bank']} (.xlsx)",
