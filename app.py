@@ -690,7 +690,7 @@ with col1:
             accept_multiple_files=True,
             key=f"pdf_{pilihan_bank}"
         )
-    with col2:
+with col2:
         uploaded_book = st.file_uploader(
             "2. Unggah Excel General Ledger (.xlsx)",
             type=["xlsx"],
