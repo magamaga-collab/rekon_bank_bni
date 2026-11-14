@@ -163,8 +163,8 @@ st.markdown(
 
     /* 4. Dropzone Upload Kiri (Aksen Hijau Lembut) */
     div[data-testid="stColumn"]:nth-of-type(1) [data-testid="stFileUploaderDropzone"] {
-        background-color: #EBF3EE !important;
-        border: 1.5px dashed #7EA189 !important;
+        background-color: #F4F6F5 !important;
+        border: 1.5px dashed #B8C4BD !important;
         border-radius: 10px !important;
         padding: 1.4rem 1rem !important;
     }
@@ -741,6 +741,20 @@ elif menu_aktif == "🔄 Reconciliation":
         unsafe_allow_html=True
     )
         # Ubah warna kotak upload kanan menjadi hijau lembut jika file Excel sudah diunggah
+    if ada_pdf:
+        st.markdown(
+            """
+            <style>
+            div[data-testid="stColumn"]:nth-of-type(1) [data-testid="stFileUploaderDropzone"] {
+                background-color: #EBF3EE !important;
+                border: 1.5px dashed #7EA189 !important;
+                border-radius: 10px !important;
+                transition: all 0.3s ease;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
     if ada_excel:
         st.markdown(
             """
