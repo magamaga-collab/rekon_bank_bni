@@ -517,7 +517,7 @@ with st.sidebar:
         """
         <div style="padding: 0.5rem 0 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 1rem;">
             <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: 0.3px;">🏦 REKON PRO</div>
-            <div style="font-size: 0.78rem; opacity: 0.85;">Enterprise Bank vs GL • by FERDX</div>
+            <div style="font-size: 0.78rem; opacity: 0.85;">Reconcile Bank vs GL • by FERDX</div>
         </div>
         """,
         unsafe_allow_html=True
