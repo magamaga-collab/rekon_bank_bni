@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# HALAMAN LOGIN PASSWORD (SELARAS TEMA SAGE GREEN REKON PRO)
+# HALAMAN LOGIN PASSWORD (SELARAS TEMA SAGE GREEN ReconIt!)
 # ============================================================
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -85,7 +85,7 @@ if not st.session_state.authenticated:
                     <div style="display: inline-block; background-color: #EBF1ED; color: #496552;
                                 font-size: 0.72rem; font-weight: 700; letter-spacing: 0.8px;
                                 padding: 4px 12px; border-radius: 20px; margin-bottom: 10px;">
-                        REKON PRO • ENTERPRISE WORKSPACE
+                        ReconIt! • ENTERPRISE WORKSPACE
                     </div>
                     <div style="font-size: 2.2rem; line-height: 1.1; margin-bottom: 6px;">🏦</div>
                     <h2 style="margin: 0; font-size: 1.45rem; color: #1E2923; font-weight: 700;">
@@ -516,7 +516,7 @@ with st.sidebar:
     st.markdown(
         """
         <div style="padding: 0.5rem 0 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 1rem;">
-            <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: 0.3px;">🏦 REKON PRO</div>
+            <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: 0.3px;">🏦 ReconIt!</div>
             <div style="font-size: 0.78rem; opacity: 0.85;">Reconcile Bank vs GL • by FERDX</div>
         </div>
         """,
