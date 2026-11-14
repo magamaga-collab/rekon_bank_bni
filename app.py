@@ -678,30 +678,7 @@ elif menu_aktif == "🔄 Reconciliation":
         
     st.caption(f"Unggah **PDF Rekening Koran {pilihan_bank}** (1 s.d. 12 bulan) dan **Excel Catatan Transaksi Internal (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
 
-    # Stepper Progress Bar (PDF -> General Ledger)
-    st.markdown(
-        """
-        <div style="background-color: #FFFFFF; border: 1px solid #DCE3DF; border-radius: 12px;
-                    padding: 12px 28px; margin: 12px 0 16px 0;
-                    box-shadow: 0 3px 10px rgba(45, 65, 53, 0.04);
-                    display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; justify-content: center;
-                        width: 34px; height: 34px; border-radius: 8px;
-                        background-color: #E5EFE8; border: 1px solid #7EA189; font-size: 16px;">
-                📄
-            </div>
-            <div style="flex-grow: 1; height: 3px; background: linear-gradient(90deg, #5B7B65 50%, #D5DDD8 50%);
-                        margin: 0 16px; border-radius: 2px;"></div>
-            <div style="display: flex; align-items: center; justify-content: center;
-                        width: 34px; height: 34px; border-radius: 8px;
-                        background-color: #ECEFED; border: 1px solid #CBD3CE; font-size: 16px;">
-                📊
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
+    
     col1, col2 = st.columns(2)
     with col1:
             uploaded_pdfs = st.file_uploader(
@@ -716,7 +693,64 @@ elif menu_aktif == "🔄 Reconciliation":
                 type=["xlsx"],
                 key=f"book_{pilihan_bank}"
             )
+stepper_slot = st.empty()
 
+    col1, col2 = st.columns(2)
+    with col1:
+        uploaded_pdfs = st.file_uploader(
+            f"1. Unggah Rekening Koran {pilihan_bank} (.pdf)",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key=f"pdf_{pilihan_bank}"
+        )
+    with col2:
+        uploaded_book = st.file_uploader(
+            "2. Unggah Excel General Ledger (.xlsx)",
+            type=["xlsx"],
+            key=f"book_{pilihan_bank}"
+        )
+
+    # Hitung status progress unggahan secara dinamis (0%, 50%, atau 100%)
+    ada_pdf = bool(uploaded_pdfs)
+    ada_excel = uploaded_book is not None
+
+    if ada_pdf and ada_excel:
+        persen_bar = "100%"
+        bg_kiri, brd_kiri = "#D4E8DA", "#5B7B65"
+        bg_kanan, brd_kanan = "#D4E8DA", "#5B7B65"
+    elif ada_pdf or ada_excel:
+        persen_bar = "50%"
+        bg_kiri = "#D4E8DA" if ada_pdf else "#ECEFED"
+        brd_kiri = "#5B7B65" if ada_pdf else "#CBD3CE"
+        bg_kanan = "#D4E8DA" if ada_excel else "#ECEFED"
+        brd_kanan = "#5B7B65" if ada_excel else "#CBD3CE"
+    else:
+        persen_bar = "0%"
+        bg_kiri, brd_kiri = "#ECEFED", "#CBD3CE"
+        bg_kanan, brd_kanan = "#ECEFED", "#CBD3CE"
+
+    stepper_slot.markdown(
+        f"""
+        <div style="background-color: #FFFFFF; border: 1px solid #DCE3DF; border-radius: 12px;
+                    padding: 12px 28px; margin: 12px 0 16px 0;
+                    box-shadow: 0 3px 10px rgba(45, 65, 53, 0.04);
+                    display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; justify-content: center;
+                        width: 34px; height: 34px; border-radius: 8px;
+                        background-color: {bg_kiri}; border: 1.5px solid {brd_kiri}; font-size: 16px;">
+                📄
+            </div>
+            <div style="flex-grow: 1; height: 4px; background: linear-gradient(90deg, #5B7B65 {persen_bar}, #DCE3DF {persen_bar});
+                        margin: 0 16px; border-radius: 3px; transition: all 0.3s ease;"></div>
+            <div style="display: flex; align-items: center; justify-content: center;
+                        width: 34px; height: 34px; border-radius: 8px;
+                        background-color: {bg_kanan}; border: 1.5px solid {brd_kanan}; font-size: 16px;">
+                📊
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     mapping_kolom = {}
     df_book_raw = None
 
