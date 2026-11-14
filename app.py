@@ -127,13 +127,16 @@ st.markdown(
     """
     <style>
     /* 1. Top Bar Hijau Tua Penuh di Paling Atas */
-    header[data-testid="stHeader"], .stAppHeader, [data-testid="stDecoration"] {
+    header[data-testid="stHeader"], .stAppHeader, .stAppToolbar, [data-testid="stDecoration"] {
         background-color: #466650 !important;
         background-image: none !important;
         height: 2.8rem !important;
+        min-height: 2.8rem !important;
         border-bottom: 1px solid #395441 !important;
+        display: block !important;
+        visibility: visible !important;
     }
-    header[data-testid="stHeader"] * {
+    header[data-testid="stHeader"] *, .stAppToolbar * {
         color: #FFFFFF !important;
     }
 
