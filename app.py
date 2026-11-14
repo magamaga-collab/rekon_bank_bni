@@ -537,7 +537,7 @@ with st.sidebar:
             <div style="background: rgba(255,255,255,0.22); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700;">F</div>
             <div>
                 <div style="font-weight: 600; font-size: 0.92rem;">github</div>
-                <div style="font-size: 0.75rem; opacity: 0.85;">magamaga-collab Lead</div>
+                <div style="font-size: 0.75rem; opacity: 0.85;">magamaga-collab</div>
             </div>
         </div>
         """,
