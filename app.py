@@ -573,9 +573,12 @@ st.markdown(
 with st.sidebar:
     st.markdown(
         """
-        <div style="padding: 0.5rem 0 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 1rem;">
-            <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: 0.3px;">🏦 ReconIt!</div>
-            <div style="font-size: 0.78rem; opacity: 0.85;">Reconcile Bank vs GL
+        <div style="padding: 0.5rem 0 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 1.85rem; line-height: 1;">🏙️</div>
+            <div>
+                <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: 0.3px; line-height: 1.2;">ReconIt!</div>
+                <div style="font-size: 0.78rem; opacity: 0.85; margin-top: 2px;">Reconcile Bank vs GL</div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True
