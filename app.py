@@ -126,11 +126,12 @@ if not st.session_state.authenticated:
 st.markdown(
     """
     <style>
-    /* 1. Top Bar Hijau Tua di Paling Atas */
-    header[data-testid="stHeader"] {
+    /* 1. Top Bar Hijau Tua Penuh di Paling Atas */
+    header[data-testid="stHeader"], .stAppHeader, [data-testid="stDecoration"] {
         background-color: #466650 !important;
-        height: 2.6rem !important;
-        border-bottom: 1px solid #395441;
+        background-image: none !important;
+        height: 2.8rem !important;
+        border-bottom: 1px solid #395441 !important;
     }
     header[data-testid="stHeader"] * {
         color: #FFFFFF !important;
