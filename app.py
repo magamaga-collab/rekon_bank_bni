@@ -120,7 +120,54 @@ if not st.session_state.authenticated:
                 unsafe_allow_html=True
             )
     st.stop()
+# ============================================================
+# KOSMETIK HALAMAN UTAMA (TOP BAR HIJAU + STEPPER + CARD)
+# ============================================================
+st.markdown(
+    """
+    <style>
+    /* 1. Top Bar Hijau Tua di Paling Atas */
+    header[data-testid="stHeader"] {
+        background-color: #466650 !important;
+        height: 2.6rem !important;
+        border-bottom: 1px solid #395441;
+    }
+    header[data-testid="stHeader"] * {
+        color: #FFFFFF !important;
+    }
 
+    /* 2. Latar Belakang Halaman Utama */
+    .stApp {
+        background-color: #F2F5F3;
+    }
+
+    /* 3. Kartu Kontainer Putih Rapi */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #FFFFFF;
+        border: 1px solid #DCE3DF !important;
+        border-radius: 12px !important;
+        box-shadow: 0 3px 12px rgba(45, 65, 53, 0.05);
+        padding: 1rem 1.25rem;
+    }
+
+    /* 4. Dropzone Upload Kiri (Aksen Hijau Lembut) */
+    div[data-testid="stColumn"]:nth-of-type(1) [data-testid="stFileUploaderDropzone"] {
+        background-color: #EBF3EE !important;
+        border: 1.5px dashed #7EA189 !important;
+        border-radius: 10px !important;
+        padding: 1.4rem 1rem !important;
+    }
+
+    /* 5. Dropzone Upload Kanan (Aksen Abu-Abu Lembut) */
+    div[data-testid="stColumn"]:nth-of-type(2) [data-testid="stFileUploaderDropzone"] {
+        background-color: #F4F6F5 !important;
+        border: 1.5px dashed #B8C4BD !important;
+        border-radius: 10px !important;
+        padding: 1.4rem 1rem !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 
 
 
@@ -617,7 +664,34 @@ elif menu_aktif == "🔄 Reconciliation":
             ["BNI Direct", "Bank Mandiri"],
             horizontal=True
         )
-        st.caption(f"Unggah **PDF Rekening Koran {pilihan_bank}** (1 s.d. 12 bulan) dan **Excel Catatan Transaksi Internal (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
+        
+    st.caption(f"Unggah **PDF Rekening Koran {pilihan_bank}** (1 s.d. 12 bulan) dan **Excel Catatan Transaksi Internal (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
+
+    # Stepper Progress Bar (PDF -> General Ledger)
+    st.markdown(
+        """
+        <div style="background-color: #FFFFFF; border: 1px solid #DCE3DF; border-radius: 12px;
+                    padding: 12px 28px; margin: 12px 0 16px 0;
+                    box-shadow: 0 3px 10px rgba(45, 65, 53, 0.04);
+                    display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; justify-content: center;
+                        width: 34px; height: 34px; border-radius: 8px;
+                        background-color: #E5EFE8; border: 1px solid #7EA189; font-size: 16px;">
+                📄
+            </div>
+            <div style="flex-grow: 1; height: 3px; background: linear-gradient(90deg, #5B7B65 50%, #D5DDD8 50%);
+                        margin: 0 16px; border-radius: 2px;"></div>
+            <div style="display: flex; align-items: center; justify-content: center;
+                        width: 34px; height: 34px; border-radius: 8px;
+                        background-color: #ECEFED; border: 1px solid #CBD3CE; font-size: 16px;">
+                📊
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    col1, col2 = st.columns(2)
 
         col1, col2 = st.columns(2)
         with col1:
