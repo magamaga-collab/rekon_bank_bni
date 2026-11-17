@@ -83,8 +83,8 @@ if not st.session_state.authenticated:
                 """
                 <div style="text-align: center; margin-bottom: 1.2rem;">
                     <div style="display: inline-block; background-color: #EBF1ED; color: #496552;
-                                font-size: 0.72rem; font-weight: 700; letter-spacing: 0.8px;
-                                padding: 4px 12px; border-radius: 20px; margin-bottom: 10px;">
+                                font-size: 0.95rem; font-weight: 700; letter-spacing: 0.8px;
+                                padding: 6px 16px; border-radius: 20px; margin-bottom: 12px;">
                         ReconIt! • Faster 'n Easier!
                     </div>
                     <div style="font-size: 2.2rem; line-height: 1.1; margin-bottom: 6px;">🏦</div>
