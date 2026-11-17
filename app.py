@@ -675,7 +675,7 @@ elif menu_aktif == "🔄 Reconciliation":
     with st.container(border=True):
         pilihan_bank = st.radio(
             "Pilih Rekening Koran Bank:",
-            ["BNI Direct", "Bank Mandiri"],
+            ["BNI Direct", "Mandiri Kopra"],
             horizontal=True
         )
         
