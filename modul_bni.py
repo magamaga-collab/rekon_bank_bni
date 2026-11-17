@@ -336,14 +336,13 @@ def proses_rekonsiliasi_bni(df_bank_raw, df_odoo_raw):
                 for k in range(2, min(len(rows_list), 6) + 1):
                     for comb in combinations(rows_list, k):
                         if abs(sum(item[col_b] for item in comb) - ro[col_o]) <= 1:
+                            status_gabungan = f'MATCH (Gabungan {k} Trx Bank -> 1 Trx Odoo | Tgl Odoo: {ro["Tanggal_Clean"]})'
                             for idx_g, rb_item in enumerate(comb):
                                 used_b.add(rb_item['id_b'])
                                 rd = rb_item.to_dict()
                                 if idx_g == 0:
                                     rd.update({key: val for key, val in ro.to_dict().items() if key not in ['Tanggal_Clean', col_b, 'Saldo']})
-                                    rd['Status_Rekonsiliasi'] = f'MATCH (Gabungan {k} Trx Bank -> 1 Trx Odoo | Tgl Odoo: {ro["Tanggal_Clean"]})'
-                                else:
-                                    rd['Status_Rekonsiliasi'] = f'MATCH (Bagian Gabungan ke-{idx_g+1} dari {k} Trx Bank)'
+                                rd['Status_Rekonsiliasi'] = status_gabungan
                                 split_match_rows.append(rd)
                             used_o.add(ro['id_o']); ketemu = True; break
                     if ketemu: break
