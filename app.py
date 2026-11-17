@@ -425,6 +425,7 @@ def buat_excel_dengan_kontrol_bulanan(df_laporan_final, df_bank, df_gl_norm, df_
         df_bank.to_excel(writer, sheet_name=f"Ekstraksi PDF {pilihan_bank[:10]}", index=False)
 
         ws = writer.sheets["Hasil Rekonsiliasi"]
+        ws.auto_filter.ref = ws.dimensions
         headers = [cell.value for cell in ws[1]]
         col_idx = {name: i + 1 for i, name in enumerate(headers)}
         col_letter = {name: get_column_letter(i + 1) for i, name in enumerate(headers)}
@@ -847,6 +848,7 @@ elif menu_aktif == "🔄 Reconciliation":
                         df_bank.to_excel(writer, sheet_name=f"Ekstraksi PDF {pilihan_bank[:10]}", index=False)
 
                         ws = writer.sheets["Hasil Rekonsiliasi"]
+                        ws.auto_filter.ref = ws.dimensions
                         headers = [cell.value for cell in ws[1]]
                         last_data_row = len(df_laporan_final) + 1
                         row_total_rekon = last_data_row + 1
