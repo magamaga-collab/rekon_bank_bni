@@ -607,7 +607,7 @@ with st.sidebar:
     )
 
 # ============================================================
-# HEADER & TOMBOL KUNCI SESI
+# HEADER & TOMBOL LOG OUT
 # ============================================================
 h_col1, h_col2 = st.columns([5, 1])
 with h_col1:
@@ -622,7 +622,7 @@ with h_col1:
     )
 with h_col2:
     st.write("")
-    if st.button("🔒 Kunci Sesi", use_container_width=True):
+    if st.button("🔒 Log Out", use_container_width=True):
         st.session_state.authenticated = False
         st.rerun()
 
