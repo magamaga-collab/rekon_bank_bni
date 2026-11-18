@@ -114,6 +114,14 @@ if not st.session_state.authenticated:
             )
     st.stop()
 # ============================================================
+# TOMBOL LOGOUT DI SIDEBAR
+# ============================================================
+with st.sidebar:
+    st.markdown("---")
+    if st.button("🚪 Keluar / Logout", use_container_width=True):
+        st.session_state.authenticated = False
+        st.rerun()    
+# ============================================================
 # FUNGSI PEMBANTU & PENERJEMAH KOLOM UNIVERSAL
 # ============================================================
 def deteksi_kolom_otomatis(columns):
