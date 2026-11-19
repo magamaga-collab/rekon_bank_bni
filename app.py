@@ -326,7 +326,7 @@ def jalankan_rekon_satu_rekening(nama_rek, bank_pilihan, pdf_files, df_gl_raw, m
 
     hasil_ekstraksi_list.sort(key=lambda x: x["tgl_awal"])
     df_bank = pd.concat([x["df"] for x in hasil_ekstraksi_list], ignore_index=True)
-    saldo_awal = hasil_ekstraksi_list["saldo_awal"]
+    saldo_awal = hasil_ekstraksi_list[0]["saldo_awal"]
     saldo_akhir = hasil_ekstraksi_list[-1]["saldo_akhir"]
     pdf_errors = [err for x in hasil_ekstraksi_list for err in x["errors"]]
 
@@ -464,7 +464,7 @@ for idx in range(int(jumlah_rekening)):
 rekening_siap = [r for r in daftar_input_rekening if r["pdfs"] and r["df_gl_raw"] is not None]
 
 if rekening_siap:
-    label_btn = f"🚀 Proses Rekonsiliasi ({len(rekening_siap)} Rekening)" if len(rekening_siap) > 1 else f"🚀 Proses Rekonsiliasi {rekening_siap['bank']} Sekarang"
+    label_btn = f"🚀 Proses Rekonsiliasi ({len(rekening_siap)} Rekening)" if len(rekening_siap) > 1 else f"🚀 Proses Rekonsiliasi {rekening_siap[0]['bank']} Sekarang"
     if st.button(label_btn, type="primary", use_container_width=True):
         with st.spinner("Sedang mengekstrak PDF dan menjalankan audit rekonsiliasi..."):
             try:
@@ -474,7 +474,7 @@ if rekening_siap:
                 output_buffer = io.BytesIO()
                 with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
                     if len(hasil_semua_rekening) == 1:
-                        h = hasil_semua_rekening
+                        h = hasil_semua_rekening[0]
                         tulis_sheet_hasil_dengan_rumus(writer, "Hasil Rekonsiliasi", h["df_export"], h["df_laporan_final"])
                         h["df_rekap_bulan"].to_excel(writer, sheet_name="Rekap Per Bulan", index=False)
                         h["df_bank"].to_excel(writer, sheet_name=f"Ekstraksi PDF {h['bank'][:10]}", index=False)
@@ -483,7 +483,7 @@ if rekening_siap:
                         for h in hasil_semua_rekening:
                             df_lf = h["df_laporan_final"]
                             selisih_tot = round((df_lf["Kredit"].fillna(0).sum() - df_lf["Debet"].fillna(0).sum()) - (df_lf["Debit"].fillna(0).sum() - df_lf["Credit"].fillna(0).sum()), 2)
-                            periode = f"{h['bulan_bank']} s.d. {h['bulan_bank'][-1]}" if len(h["bulan_bank"]) > 1 else (h["bulan_bank"] if h["bulan_bank"] else "-")
+                            periode = f"{h['bulan_bank'][0]} s.d. {h['bulan_bank'][-1]}" if len(h["bulan_bank"]) > 1 else (h["bulan_bank"][0] if h["bulan_bank"] else "-")
                             summary_rows.append({
                                 "Nama Rekening": h["nama_rek"], "Bank": h["bank"], "Periode": periode,
                                 "Saldo Awal": h["saldo_awal"], "Saldo Akhir": h["saldo_akhir"],
