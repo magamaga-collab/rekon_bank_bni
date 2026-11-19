@@ -1,25 +1,18 @@
 import streamlit as st
 import pandas as pd
 import io
-from openpyxl.styles import Font, PatternFill, Border, Side
+import re
 from openpyxl.utils import get_column_letter
 
 from modul_bni import ekstrak_pdf_bni, proses_rekonsiliasi_bni
 from modul_mandiri import ekstrak_pdf_mandiri, proses_rekonsiliasi_mandiri
 
-# ============================================================
-# KONFIGURASI HALAMAN WEB
-# ============================================================
 st.set_page_config(
     page_title="Rekonsiliasi Rekening Koran vs General Ledger",
     page_icon="🏦",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# ============================================================
-# HALAMAN LOGIN PASSWORD (SELARAS TEMA SAGE GREEN ReconIt!)
-# ============================================================
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -27,15 +20,10 @@ if not st.session_state.authenticated:
     st.markdown(
         """
         <style>
-        /* Sembunyikan sidebar & header bawaan di halaman login */
         [data-testid="stSidebar"], [data-testid="collapsedControl"], header[data-testid="stHeader"] {
             display: none !important;
         }
-        /* Warna latar belakang lembut selaras halaman utama */
-        .stApp {
-            background-color: #F4F6F5;
-        }
-        /* Kartu Login Tengah */
+        .stApp { background-color: #F4F6F5; }
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #FFFFFF;
             border: 1px solid #DCE3DF;
@@ -45,7 +33,6 @@ if not st.session_state.authenticated:
             padding: 2rem 2.2rem 1.8rem 2.2rem;
             margin-top: 4vh;
         }
-        /* Input Password */
         div[data-testid="stTextInput"] input {
             background-color: #F8FAF9;
             border: 1px solid #CBD5D0;
@@ -57,7 +44,6 @@ if not st.session_state.authenticated:
             border-color: #5B7B65;
             box-shadow: 0 0 0 2px rgba(91, 123, 101, 0.2);
         }
-        /* Tombol Masuk Hijau Sage */
         div[data-testid="stButton"] > button[kind="primary"] {
             background-color: #5B7B65 !important;
             border: none !important;
@@ -75,7 +61,6 @@ if not st.session_state.authenticated:
         """,
         unsafe_allow_html=True
     )
-
     _, col_center, _ = st.columns([1.2, 1.3, 1.2])
     with col_center:
         with st.container(border=True):
@@ -83,9 +68,9 @@ if not st.session_state.authenticated:
                 """
                 <div style="text-align: center; margin-bottom: 1.2rem;">
                     <div style="display: inline-block; background-color: #EBF1ED; color: #496552;
-                                font-size: 0.95rem; font-weight: 700; letter-spacing: 0.8px;
-                                padding: 6px 16px; border-radius: 20px; margin-bottom: 12px;">
-                        ReconIt! • Faster 'n Easier!
+                                font-size: 0.72rem; font-weight: 700; letter-spacing: 0.8px;
+                                padding: 4px 12px; border-radius: 20px; margin-bottom: 10px;">
+                        REKON PRO • ENTERPRISE WORKSPACE
                     </div>
                     <div style="font-size: 2.2rem; line-height: 1.1; margin-bottom: 6px;">🏦</div>
                     <h2 style="margin: 0; font-size: 1.45rem; color: #1E2923; font-weight: 700;">
@@ -99,17 +84,14 @@ if not st.session_state.authenticated:
                 """,
                 unsafe_allow_html=True
             )
-
             pwd = st.text_input("Password Akses", type="password", placeholder="Masukkan kata sandi tim...", autocomplete="current-password")
             st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
-            
             if st.button("🔐 Masuk ke Aplikasi", type="primary", use_container_width=True):
                 if pwd == st.secrets["APP_PASSWORD"]:
                     st.session_state.authenticated = True
                     st.rerun()
                 else:
                     st.error("Password salah! Silakan coba lagi.")
-
             st.markdown(
                 """
                 <div style="text-align: center; margin-top: 1.2rem; padding-top: 0.8rem;
@@ -120,39 +102,16 @@ if not st.session_state.authenticated:
                 unsafe_allow_html=True
             )
     st.stop()
-# ============================================================
-# KOSMETIK HALAMAN UTAMA (TOP BAR HIJAU + STEPPER + CARD)
-# ============================================================
 st.markdown(
     """
     <style>
-    /* 1. Top Bar Hijau Tua Penuh di Paling Atas (Tinggi +1 cm) */
-    header[data-testid="stHeader"], .stAppHeader, .stAppToolbar, [data-testid="stDecoration"] {
+    header[data-testid="stHeader"] {
         background-color: #466650 !important;
-        background-image: none !important;
-        height: 4.2rem !important;
-        min-height: 4.2rem !important;
-        border-bottom: 1px solid #395441 !important;
-        display: block !important;
-        visibility: visible !important;
+        height: 2.6rem !important;
+        border-bottom: 1px solid #395441;
     }
-    header[data-testid="stHeader"] *, .stAppToolbar * {
-        color: #FFFFFF !important;
-    }
-    /* Dorong konten utama & sidebar sedikit ke bawah agar pas dengan tinggi header baru */
-    .block-container {
-        padding-top: 5.2rem !important;
-    }
-    section[data-testid="stSidebar"] > div:first-child {
-        padding-top: 4.5rem !important;
-    }
-
-    /* 2. Latar Belakang Halaman Utama */
-    .stApp {
-        background-color: #F2F5F3;
-    }
-
-    /* 3. Kartu Kontainer Putih Rapi */
+    header[data-testid="stHeader"] * { color: #FFFFFF !important; }
+    .stApp { background-color: #F2F5F3; }
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #FFFFFF;
         border: 1px solid #DCE3DF !important;
@@ -160,21 +119,31 @@ st.markdown(
         box-shadow: 0 3px 12px rgba(45, 65, 53, 0.05);
         padding: 1rem 1.25rem;
     }
-
-    /* 4. Dropzone Upload Kiri (Aksen Hijau Lembut) */
     div[data-testid="stColumn"]:nth-of-type(1) [data-testid="stFileUploaderDropzone"] {
-        background-color: #F4F6F5 !important;
-        border: 1.5px dashed #B8C4BD !important;
+        background-color: #EBF3EE !important;
+        border: 1.5px dashed #7EA189 !important;
         border-radius: 10px !important;
-        padding: 1.4rem 1rem !important;
+        padding: 1.2rem 1rem !important;
     }
-
-    /* 5. Dropzone Upload Kanan (Aksen Abu-Abu Lembut) */
     div[data-testid="stColumn"]:nth-of-type(2) [data-testid="stFileUploaderDropzone"] {
         background-color: #F4F6F5 !important;
         border: 1.5px dashed #B8C4BD !important;
         border-radius: 10px !important;
-        padding: 1.4rem 1rem !important;
+        padding: 1.2rem 1rem !important;
+    }
+    div[data-testid="stButton"] > button[kind="primary"],
+    div[data-testid="stDownloadButton"] > button[kind="primary"] {
+        background-color: #5B7B65 !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    div[data-testid="stButton"] > button[kind="primary"]:hover,
+    div[data-testid="stDownloadButton"] > button[kind="primary"]:hover {
+        background-color: #496552 !important;
+        box-shadow: 0 4px 12px rgba(91, 123, 101, 0.25);
     }
     </style>
     """,
@@ -182,9 +151,6 @@ st.markdown(
 )
 
 
-# ============================================================
-# FUNGSI PENERJEMAH KOLOM & PEMBANTU UNIVERSAL
-# ============================================================
 def deteksi_kolom_otomatis(columns):
     kamus = {
         "Date": ["date", "tanggal", "tgl", "posting date", "trans date", "transaction date", "tgl transaksi"],
@@ -212,7 +178,6 @@ def normalisasi_excel_pembukuan(df_raw, mapping):
         sumber = mapping.get(target)
         if sumber and sumber != "(Tidak Ada)" and sumber in df.columns:
             rename_dict[sumber] = target
-
     df = df.rename(columns=rename_dict)
     if "Number" not in df.columns:
         df["Number"] = ""
@@ -259,16 +224,16 @@ def tambah_kolom_selisih(df_export, df_laporan_final):
         credit_gl = pd.to_numeric(df.get("Credit", 0), errors="coerce").fillna(0)
         df[nama_kolom] = ((kredit_bank - debet_bank) - (debit_gl - credit_gl)).round(2)
 
+    mask_transaksi = ~df_export["Tanggal_Clean"].isin(["TOTAL REKON", "TOTAL ASLI", "CONTROL CHECK"])
+    df_export.loc[df_export["Tanggal_Clean"] == "TOTAL REKON", nama_kolom] = round(df_export.loc[mask_transaksi, nama_kolom].sum(), 2)
     return df_export, df_laporan_final
 
 
 def cek_kelengkapan_bulan(df_bank, df_gl):
     tgl_bank = pd.to_datetime(df_bank["Tanggal"], errors="coerce").dropna()
     tgl_gl = pd.to_datetime(df_gl["Date"], errors="coerce").dropna()
-
     bulan_bank = sorted(tgl_bank.dt.strftime("%Y-%m").unique().tolist())
     bulan_gl = sorted(tgl_gl.dt.strftime("%Y-%m").unique().tolist())
-
     hilang_di_gl = sorted(list(set(bulan_bank) - set(bulan_gl)))
     hilang_di_bank = sorted(list(set(bulan_gl) - set(bulan_bank)))
     return bulan_bank, bulan_gl, hilang_di_gl, hilang_di_bank
@@ -277,7 +242,6 @@ def cek_kelengkapan_bulan(df_bank, df_gl):
 def buat_rekap_per_bulan(df_laporan_final):
     df_temp = df_laporan_final.copy()
     df_temp["Bulan"] = df_temp["Tanggal_Clean"].astype(str).str[:7]
-
     rekap_rows = []
     for bln, grp in df_temp.groupby("Bulan", sort=True):
         debet_b = round(grp["Debet"].fillna(0).sum(), 2)
@@ -286,740 +250,246 @@ def buat_rekap_per_bulan(df_laporan_final):
         credit_g = round(grp["Credit"].fillna(0).sum(), 2)
         selisih_net = round((kredit_b - debet_b) - (debit_g - credit_g), 2)
         jml_unmatched = grp[~grp["Status_Rekonsiliasi"].str.startswith(("MATCH", "NETTING JAGIR", "KONTRA BANK"))].shape[0]
-
         if selisih_net == 0 and jml_unmatched == 0:
             status = "✅ COCOK 100%"
         elif selisih_net == 0 and jml_unmatched > 0:
             status = f"⚠️ NETT NOL ({jml_unmatched} Baris Belum Cocok)"
         else:
             status = f"❌ ADA SELISIH ({jml_unmatched} Baris Belum Cocok)"
-
         rekap_rows.append({
-            "Bulan": bln,
-            "Debet Bank": debet_b,
-            "Kredit Bank": kredit_b,
-            "Debit GL": debit_g,
-            "Credit GL": credit_g,
-            "Selisih Bank dengan GL": selisih_net,
-            "Baris Belum Match": jml_unmatched,
-            "Status Bulan": status
+            "Bulan": bln, "Debet Bank": debet_b, "Kredit Bank": kredit_b,
+            "Debit GL": debit_g, "Credit GL": credit_g,
+            "Selisih Bank dengan GL": selisih_net, "Baris Belum Match": jml_unmatched, "Status Bulan": status
         })
-
     return pd.DataFrame(rekap_rows)
-def buat_excel_dengan_kontrol_bulanan(df_laporan_final, df_bank, df_gl_norm, df_export_asli, df_rekap_bulan, pilihan_bank):
-    kolom_utama = df_laporan_final.columns.tolist()
+def tulis_sheet_hasil_dengan_rumus(writer, sheet_name, df_export, df_laporan_final):
+    df_export.to_excel(writer, sheet_name=sheet_name, index=False)
+    ws = writer.sheets[sheet_name]
+    headers = [cell.value for cell in ws[1]]
+    last_data_row = len(df_laporan_final) + 1
+    row_total_rekon = last_data_row + 1
+    row_total_asli = last_data_row + 2
+    row_control_check = last_data_row + 3
 
-    # Hitung total asli per bulan dari masing-masing sumber mentah
-    df_b = df_bank.copy()
-    df_b["Bulan"] = pd.to_datetime(df_b["Tanggal"], errors="coerce").dt.strftime("%Y-%m")
-    df_b["Debet"] = pd.to_numeric(df_b["Debet"], errors="coerce").fillna(0)
-    df_b["Kredit"] = pd.to_numeric(df_b["Kredit"], errors="coerce").fillna(0)
+    col_idx = {name: i + 1 for i, name in enumerate(headers)}
+    col_letter = {name: get_column_letter(i + 1) for i, name in enumerate(headers)}
 
-    df_g = df_gl_norm.copy()
-    df_g["Bulan"] = pd.to_datetime(df_g["Date"], errors="coerce").dt.strftime("%Y-%m")
-    df_g["Debit"] = pd.to_numeric(df_g["Debit"], errors="coerce").fillna(0)
-    df_g["Credit"] = pd.to_numeric(df_g["Credit"], errors="coerce").fillna(0)
-    df_g_valid = df_g[df_g["Bulan"].notna()].copy()
+    if all(k in col_letter for k in ["Kredit", "Debet", "Debit", "Credit", "Selisih Bank dengan GL"]):
+        c_kredit, c_debet = col_letter["Kredit"], col_letter["Debet"]
+        c_debit, c_credit = col_letter["Debit"], col_letter["Credit"]
+        idx_selisih = col_idx["Selisih Bank dengan GL"]
+        for r in range(2, last_data_row + 1):
+            ws.cell(row=r, column=idx_selisih).value = f"=({c_kredit}{r}-{c_debet}{r})-({c_debit}{r}-{c_credit}{r})"
 
-    # Ambil Grand Total Asli dari df_export_asli (sudah termasuk header bawaan GL)
-    baris_asli_global = df_export_asli[df_export_asli["Tanggal_Clean"] == "TOTAL ASLI"].iloc[0]
-    grand_debet_bank = float(baris_asli_global.get("Debet", 0) or 0)
-    grand_kredit_bank = float(baris_asli_global.get("Kredit", 0) or 0)
-    grand_debit_gl = float(baris_asli_global.get("Debit", 0) or 0)
-    grand_credit_gl = float(baris_asli_global.get("Credit", 0) or 0)
+    for nama_kol in ["Debet", "Kredit", "Debit", "Credit", "Selisih Bank dengan GL"]:
+        if nama_kol in col_idx:
+            c_idx, c_let = col_idx[nama_kol], col_letter[nama_kol]
+            ws.cell(row=row_total_rekon, column=c_idx).value = f"=SUM({c_let}2:{c_let}{last_data_row})"
+            ws.cell(row=row_control_check, column=c_idx).value = f"={c_let}{row_total_rekon}-{c_let}{row_total_asli}"
 
-    df_lap = df_laporan_final.copy()
-    df_lap["Bulan"] = df_lap["Tanggal_Clean"].astype(str).str[:7]
-    daftar_bulan = sorted(df_lap["Bulan"].unique().tolist())
 
-    rows_terstruktur = []
-    info_blok_bulan = []  # menyimpan koordinat baris Excel tiap bulan
-
-    current_excel_row = 2  # baris 1 adalah header
-    for bln in daftar_bulan:
-        grp = df_lap[df_lap["Bulan"] == bln].drop(columns=["Bulan"])
-        start_row = current_excel_row
-        for _, r in grp.iterrows():
-            rows_terstruktur.append(r.to_dict())
-            current_excel_row += 1
-        end_row = current_excel_row - 1
-
-        # Hitung total asli khusus bulan ini
-        asli_debet_b = round(df_b[df_b["Bulan"] == bln]["Debet"].sum(), 2)
-        asli_kredit_b = round(df_b[df_b["Bulan"] == bln]["Kredit"].sum(), 2)
-        asli_debit_g = round(df_g_valid[df_g_valid["Bulan"] == bln]["Debit"].sum(), 2)
-        asli_credit_g = round(df_g_valid[df_g_valid["Bulan"] == bln]["Credit"].sum(), 2)
-        asli_selisih = round((asli_kredit_b - asli_debet_b) - (asli_debit_g - asli_credit_g), 2)
-
-        row_rekon = current_excel_row
-        rows_terstruktur.append({
-            "Tanggal_Clean": f"TOTAL REKON ({bln})",
-            "Status_Rekonsiliasi": f"SUM Hasil Rekon Bulan {bln}"
-        })
-        current_excel_row += 1
-
-        row_asli = current_excel_row
-        rows_terstruktur.append({
-            "Tanggal_Clean": f"TOTAL ASLI ({bln})",
-            "Status_Rekonsiliasi": f"Total Asli PDF & GL Bulan {bln}",
-            "Debet": asli_debet_b,
-            "Kredit": asli_kredit_b,
-            "Debit": asli_debit_g,
-            "Credit": asli_credit_g,
-            "Selisih Bank dengan GL": asli_selisih
-        })
-        current_excel_row += 1
-
-        row_ctrl = current_excel_row
-        rows_terstruktur.append({
-            "Tanggal_Clean": f"CONTROL CHECK ({bln})",
-            "Status_Rekonsiliasi": f"Selisih Kontrol Bulan {bln} (Harus 0)"
-        })
-        current_excel_row += 1
-
-        # 1 baris kosong pemisah antarbulan
-        rows_terstruktur.append({})
-        current_excel_row += 1
-
-        info_blok_bulan.append({
-            "start": start_row,
-            "end": end_row,
-            "rekon": row_rekon,
-            "asli": row_asli,
-            "ctrl": row_ctrl
+def jalankan_rekon_satu_rekening(nama_rek, bank_pilihan, pdf_files, df_gl_raw, mapping_kolom):
+    df_book_normalized = normalisasi_excel_pembukuan(df_gl_raw, mapping_kolom)
+    hasil_ekstraksi_list = []
+    for pdf_item in pdf_files:
+        if bank_pilihan == "BNI Direct":
+            df_p, s_awal, s_akhir, err_p = ekstrak_pdf_bni(pdf_item)
+        else:
+            df_p, s_awal, s_akhir, err_p = ekstrak_pdf_mandiri(pdf_item)
+        df_p["Sumber_File"] = pdf_item.name
+        hasil_ekstraksi_list.append({
+            "tgl_awal": pd.to_datetime(df_p["Tanggal"]).min(),
+            "df": df_p, "saldo_awal": s_awal, "saldo_akhir": s_akhir, "errors": err_p
         })
 
-    # Tambahkan blok GRAND TOTAL keseluruhan di paling bawah
-    row_grand_rekon = current_excel_row
-    rows_terstruktur.append({
-        "Tanggal_Clean": "GRAND TOTAL REKON",
-        "Status_Rekonsiliasi": "Total Gabungan Seluruh Bulan Hasil Rekon"
-    })
-    current_excel_row += 1
+    hasil_ekstraksi_list.sort(key=lambda x: x["tgl_awal"])
+    df_bank = pd.concat([x["df"] for x in hasil_ekstraksi_list], ignore_index=True)
+    saldo_awal = hasil_ekstraksi_list[0]["saldo_awal"]
+    saldo_akhir = hasil_ekstraksi_list[-1]["saldo_akhir"]
+    pdf_errors = [err for x in hasil_ekstraksi_list for err in x["errors"]]
 
-    row_grand_asli = current_excel_row
-    grand_selisih = round((grand_kredit_bank - grand_debet_bank) - (grand_debit_gl - grand_credit_gl), 2)
-    rows_terstruktur.append({
-        "Tanggal_Clean": "GRAND TOTAL ASLI",
-        "Status_Rekonsiliasi": "Total Asli Keseluruhan PDF & Header GL",
-        "Debet": grand_debet_bank,
-        "Kredit": grand_kredit_bank,
-        "Debit": grand_debit_gl,
-        "Credit": grand_credit_gl,
-        "Selisih Bank dengan GL": grand_selisih
-    })
-    current_excel_row += 1
+    bulan_bank, bulan_gl, hilang_di_gl, hilang_di_bank = cek_kelengkapan_bulan(df_bank, df_book_normalized)
 
-    row_grand_ctrl = current_excel_row
-    rows_terstruktur.append({
-        "Tanggal_Clean": "GRAND CONTROL CHECK",
-        "Status_Rekonsiliasi": "Validasi Akhir Keseluruhan (Harus 0)"
-    })
+    if bank_pilihan == "BNI Direct":
+        df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_bni(df_bank.copy(), df_book_normalized)
+    else:
+        df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_mandiri(df_bank.copy(), df_book_normalized)
 
-    df_final_excel = pd.DataFrame(rows_terstruktur, columns=kolom_utama)
+    df_export, df_laporan_final, pesan_audit = perhalus_label_universal(df_export, df_laporan_final, pesan_audit)
+    df_export, df_laporan_final = tambah_kolom_selisih(df_export, df_laporan_final)
+    df_rekap_bulan = buat_rekap_per_bulan(df_laporan_final)
 
-    output_buffer = io.BytesIO()
-    with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
-        df_final_excel.to_excel(writer, sheet_name="Hasil Rekonsiliasi", index=False)
-        df_rekap_bulan.to_excel(writer, sheet_name="Rekap Per Bulan", index=False)
-        df_bank.to_excel(writer, sheet_name=f"Ekstraksi PDF {pilihan_bank[:10]}", index=False)
-
-        ws = writer.sheets["Hasil Rekonsiliasi"]
-        ws.auto_filter.ref = ws.dimensions
-        headers = [cell.value for cell in ws[1]]
-        col_idx = {name: i + 1 for i, name in enumerate(headers)}
-        col_letter = {name: get_column_letter(i + 1) for i, name in enumerate(headers)}
-
-        fill_rekon = PatternFill(start_color="EDF2F8", end_color="EDF2F8", fill_type="solid")
-        fill_asli = PatternFill(start_color="F8F9FA", end_color="F8F9FA", fill_type="solid")
-        fill_ctrl = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
-        fill_grand = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
-        font_bold = Font(bold=True)
-        border_top_thin = Border(top=Side(style="thin", color="808080"))
-        border_bottom_double = Border(bottom=Side(style="double", color="000000"), top=Side(style="thin", color="808080"))
-
-        kolom_angka = ["Debet", "Kredit", "Saldo", "Debit", "Credit", "Selisih Bank dengan GL"]
-        kolom_hitung = ["Debet", "Kredit", "Debit", "Credit", "Selisih Bank dengan GL"]
-
-        # Tulis rumus per baris transaksi dan blok 3 baris kontrol tiap bulan
-        for blok in info_blok_bulan:
-            if all(k in col_letter for k in ["Kredit", "Debet", "Debit", "Credit", "Selisih Bank dengan GL"]):
-                c_kr, c_db, c_dgl, c_cgl = col_letter["Kredit"], col_letter["Debet"], col_letter["Debit"], col_letter["Credit"]
-                idx_sel = col_idx["Selisih Bank dengan GL"]
-                for r in range(blok["start"], blok["end"] + 1):
-                    ws.cell(row=r, column=idx_sel).value = f"=({c_kr}{r}-{c_db}{r})-({c_dgl}{r}-{c_cgl}{r})"
-
-            for k_col in kolom_hitung:
-                if k_col in col_idx:
-                    ci, cl = col_idx[k_col], col_letter[k_col]
-                    ws.cell(row=blok["rekon"], column=ci).value = f"=SUM({cl}{blok['start']}:{cl}{blok['end']})"
-                    ws.cell(row=blok["ctrl"], column=ci).value = f"={cl}{blok['rekon']}-{cl}{blok['asli']}"
-
-            for c_i in range(1, len(headers) + 1):
-                ws.cell(row=blok["rekon"], column=c_i).fill = fill_rekon
-                ws.cell(row=blok["rekon"], column=c_i).font = font_bold
-                ws.cell(row=blok["rekon"], column=c_i).border = border_top_thin
-
-                ws.cell(row=blok["asli"], column=c_i).fill = fill_asli
-                ws.cell(row=blok["asli"], column=c_i).font = font_bold
-
-                ws.cell(row=blok["ctrl"], column=c_i).fill = fill_ctrl
-                ws.cell(row=blok["ctrl"], column=c_i).font = font_bold
-                ws.cell(row=blok["ctrl"], column=c_i).border = border_bottom_double
-
-        # Tulis rumus Grand Total Tahunan
-        for k_col in kolom_hitung:
-            if k_col in col_idx:
-                ci, cl = col_idx[k_col], col_letter[k_col]
-                daftar_sel_rekon = "+".join([f"{cl}{b['rekon']}" for b in info_blok_bulan])
-                ws.cell(row=row_grand_rekon, column=ci).value = f"={daftar_sel_rekon}"
-                ws.cell(row=row_grand_ctrl, column=ci).value = f"={cl}{row_grand_rekon}-{cl}{row_grand_asli}"
-
-        for r_g in [row_grand_rekon, row_grand_asli, row_grand_ctrl]:
-            for c_i in range(1, len(headers) + 1):
-                ws.cell(row=r_g, column=c_i).fill = fill_grand
-                ws.cell(row=r_g, column=c_i).font = font_bold
-                if r_g == row_grand_ctrl:
-                    ws.cell(row=r_g, column=c_i).border = border_bottom_double
-
-        # Format Accounting & Auto-Fit Lebar Kolom untuk SEMUA Sheet
-        acc_format = '#,##0.00;(#,##0.00);"-"'
-        for s_name in writer.sheets:
-            s_ws = writer.sheets[s_name]
-            s_headers = [c.value for c in s_ws[1]]
-            for idx_h, h_name in enumerate(s_headers, start=1):
-                if h_name in kolom_angka:
-                    for r_i in range(2, s_ws.max_row + 1):
-                        s_ws.cell(row=r_i, column=idx_h).number_format = acc_format
-
-                max_len = max((len(str(s_ws.cell(row=r_i, column=idx_h).value or "")) for r_i in range(1, min(s_ws.max_row + 1, 200))), default=10)
-                s_ws.column_dimensions[get_column_letter(idx_h)].width = max(min(max_len + 5, 55), 16)
-
-    return output_buffer.getvalue()
-def warnai_baris_status(row):
-    status = str(row.get("Status_Rekonsiliasi", ""))
-    if status.startswith("MATCH"):
-        return ["background-color: #F0FDF4"] * len(row)
-    elif status.startswith(("NETTING JAGIR", "KONTRA BANK")):
-        return ["background-color: #EFF6FF"] * len(row)
-    elif status.startswith(("HANYA DI", "SELISIH")):
-        return ["background-color: #FEF2F2"] * len(row)
-    return [""] * len(row)
-# ============================================================
-# CSS Faster 'n Easier! (SAGE GREEN & CALM UI)
-# ============================================================
+    return {
+        "nama_rek": nama_rek, "bank": bank_pilihan, "jml_pdf": len(pdf_files),
+        "df_bank": df_bank, "df_export": df_export, "df_laporan_final": df_laporan_final,
+        "df_rekap_bulan": df_rekap_bulan, "saldo_awal": saldo_awal, "saldo_akhir": saldo_akhir,
+        "pdf_errors": pdf_errors, "pesan_audit": pesan_audit,
+        "bulan_bank": bulan_bank, "hilang_di_gl": hilang_di_gl, "hilang_di_bank": hilang_di_bank
+    }
 st.markdown(
     """
-    <style>
-    .stApp {
-        background-color: #F4F7F6;
-    }
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-    }
-    [data-testid="stToolbarActions"], [data-testid="stStatusWidget"] {
-        display: none !important;
-    }
-    button[data-testid="stExpandSidebarButton"], [data-testid="collapsedControl"] {
-        display: flex !important;
-        visibility: visible !important;
-        background-color: #6B8E78 !important;
-        color: #FFFFFF !important;
-        border-radius: 8px !important;
-        margin: 0.4rem !important;
-    }
-    section[data-testid="stSidebar"] {
-        background-color: #6B8E78;
-        min-width: 260px !important;
-    }
-    section[data-testid="stSidebar"] * {
-        color: #FFFFFF !important;
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] label {
-        background-color: rgba(255, 255, 255, 0.08);
-        padding: 0.55rem 0.85rem;
-        border-radius: 8px;
-        margin-bottom: 0.35rem;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-    section[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-        background-color: rgba(255, 255, 255, 0.18);
-    }
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: #FFFFFF;
-        border-radius: 12px;
-        border: 1px solid #DCE5E0;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
-        padding: 0.6rem;
-    }
-    div.stButton > button[kind="primary"] {
-        background-color: #4A7259;
-        border-color: #4A7259;
-        color: #FFFFFF;
-        font-weight: 600;
-        border-radius: 8px;
-    }
-    div.stButton > button[kind="primary"]:hover {
-        background-color: #3B5D48;
-        border-color: #3B5D48;
-    }
-    </style>
+    <h1 style='margin-bottom: 0.2rem;'>
+        🏦 Aplikasi Rekonsiliasi Rekening Koran Bank vs General Ledger
+        <sup style='font-size: 0.42em; font-weight: 600; color: #6c757d; letter-spacing: 0.5px;'>by FERDX</sup>
+    </h1>
     """,
     unsafe_allow_html=True
 )
+st.markdown("Unggah **PDF Rekening Koran (1 bulan atau multi-bulan)** dan **Excel General Ledger** untuk satu atau beberapa rekening sekaligus.")
 
-# ============================================================
-# SIDEBAR NAVIGASI UTAMA & PROFIL PENGGUNA
-# ============================================================
-with st.sidebar:
-    st.markdown(
-        """
-        <div style="padding: 0.5rem 0 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
-            <div style="font-size: 1.85rem; line-height: 1;">🏙️</div>
-            <div>
-                <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: 0.3px; line-height: 1.2;">ReconIt!</div>
-                <div style="font-size: 0.78rem; opacity: 0.85; margin-top: 2px;">Reconcile Bank vs GL</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+with st.container(border=True):
+    c_jml, c_info = st.columns([1, 3])
+    with c_jml:
+        jumlah_rekening = st.number_input("Jumlah Rekening Diproses:", min_value=1, max_value=10, value=1, step=1)
+    with c_info:
+        st.info("💡 **Tips Multi-Rekening:** Atur angka di samping jika Anda ingin merekonsiliasi beberapa nomor rekening berbeda (BNI maupun Mandiri) dalam satu kali proses.")
 
-    menu_aktif = st.radio(
-        "Navigasi Workspace",
-        ["📊 Dashboard", "🔄 Reconciliation", "📑 Reports", "⚙️ Settings"],
-        index=1,
-        label_visibility="collapsed"
-    )
+daftar_input_rekening = []
 
-    st.markdown("<div style='height: 18rem;'></div>", unsafe_allow_html=True)
-    st.markdown(
-        """
-        <div style="padding-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 10px;">
-            <div style="background: rgba(255,255,255,0.22); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700;">F</div>
-            <div>
-                <div style="font-weight: 600; font-size: 0.92rem;">github</div>
-                <div style="font-size: 0.75rem; opacity: 0.85;">magamaga-collab</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-# ============================================================
-# HEADER & TOMBOL LOG OUT
-# ============================================================
-h_col1, h_col2 = st.columns([5, 1])
-with h_col1:
-    st.markdown(
-        """
-        <h2 style='margin-bottom: 0.15rem; color: #0F172A;'>
-            🏦 Aplikasi Rekonsiliasi Rekening Koran Bank vs General Ledger
-            <sup style='font-size: 0.45em; font-weight: 600; color: #64748B; letter-spacing: 0.5px;'>by FERDX</sup>
-        </h2>
-        """,
-        unsafe_allow_html=True
-    )
-with h_col2:
-    st.write("")
-    if st.button("🔒 Log Out", use_container_width=True):
-        st.session_state.authenticated = False
-        st.rerun()
-
-
-if "last_result" not in st.session_state:
-    st.session_state.last_result = None
-
-# ============================================================
-# MENU 1: DASHBOARD RINGKASAN EKSEKUTIF
-# ============================================================
-if menu_aktif == "📊 Dashboard":
-    st.subheader("📊 Executive Reconciliation Dashboard")
-    res = st.session_state.last_result
-
-    if res is None:
-        with st.container(border=True):
-            st.info("Belum ada data rekonsiliasi yang diproses pada sesi ini. Silakan buka menu **🔄 Reconciliation** di sidebar kiri untuk mengunggah file PDF Rekening Koran dan Excel General Ledger.")
-    else:
-        with st.container(border=True):
-            st.caption(f"Ringkasan Sesi Terakhir: **{res['pilihan_bank']}** ({res['jumlah_pdf']} File PDF) • Saldo Awal: **Rp {res['saldo_awal']:,.2f}** → Saldo Akhir: **Rp {res['saldo_akhir']:,.2f}**")
-
-            df_lap = res["df_laporan_final"]
-            jml_match = df_lap['Status_Rekonsiliasi'].str.startswith('MATCH').sum()
-            jml_jagir = df_lap['Status_Rekonsiliasi'].str.startswith(('NETTING JAGIR', 'KONTRA BANK')).sum()
-            jml_unmatched = len(df_lap) - jml_match - jml_jagir
-            rasio_match = round((jml_match / len(df_lap) * 100), 1) if len(df_lap) > 0 else 0.0
-
-            d1, d2, d3, d4 = st.columns(4)
-            d1.metric("Total Mutasi Diproses", f"{len(df_lap)} Baris")
-            d2.metric("Tingkat Kecocokan", f"{rasio_match}%", delta=f"{jml_match} Baris Match")
-            d3.metric("Netting & Kontra", f"{jml_jagir} Baris")
-            d4.metric("Perlu Tindak Lanjut", f"{jml_unmatched} Baris", delta_color="inverse")
-
-        col_chart, col_month = st.columns([1.1, 1.4])
-        with col_chart:
-            with st.container(border=True):
-                st.markdown("**Distribusi Status Rekonsiliasi**")
-                status_counts = df_lap["Status_Rekonsiliasi"].apply(
-                    lambda s: "MATCH" if str(s).startswith("MATCH") else ("NETTING / KONTRA" if str(s).startswith(("NETTING JAGIR", "KONTRA BANK")) else "BELUM COCOK")
-                ).value_counts()
-                st.bar_chart(status_counts, color="#4A7259")
-
-        with col_month:
-            with st.container(border=True):
-                st.markdown("**Ringkasan Per Bulan**")
-                st.dataframe(res["df_rekap_bulan"], use_container_width=True, height=280)
-# ============================================================
-# MENU 2: RECONCILIATION (WORKSPACE UTAMA)
-# ============================================================
-elif menu_aktif == "🔄 Reconciliation":
+for idx in range(int(jumlah_rekening)):
     with st.container(border=True):
-        pilihan_bank = st.radio(
-            "Pilih Rekening Koran Bank",
-            ["BNI Direct", "Kopra Mandiri"],
-            horizontal=True
-        )
-        
-    st.caption(f"Unggah **PDF Rekening Koran {pilihan_bank}** (1 s.d. 12 bulan) dan **Excel Catatan Transaksi Internal (ERP / Accounting Software / Excel)** untuk validasi otomatis.")
-
-    
-    
-    stepper_slot = st.empty()
-
-    col1, col2 = st.columns(2)
-    with col1:
-        uploaded_pdfs = st.file_uploader(
-            f"1. Unggah Rekening Koran {pilihan_bank} (.pdf)",
-            type=["pdf"],
-            accept_multiple_files=True,
-            key=f"pdf_{pilihan_bank}"
-        )
-    with col2:
-        uploaded_book = st.file_uploader(
-            "2. Unggah Excel General Ledger (.xlsx)",
-            type=["xlsx"],
-            key=f"book_{pilihan_bank}"
-        )
-
-
-
-    # Hitung status progress unggahan secara dinamis (0%, 50%, atau 100%)
-    ada_pdf = bool(uploaded_pdfs)
-    ada_excel = uploaded_book is not None
-
-    if ada_pdf and ada_excel:
-        persen_bar = "100%"
-        bg_kiri, brd_kiri = "#D4E8DA", "#5B7B65"
-        bg_kanan, brd_kanan = "#D4E8DA", "#5B7B65"
-    elif ada_pdf or ada_excel:
-        persen_bar = "50%"
-        bg_kiri = "#D4E8DA" if ada_pdf else "#ECEFED"
-        brd_kiri = "#5B7B65" if ada_pdf else "#CBD3CE"
-        bg_kanan = "#D4E8DA" if ada_excel else "#ECEFED"
-        brd_kanan = "#5B7B65" if ada_excel else "#CBD3CE"
-    else:
-        persen_bar = "0%"
-        bg_kiri, brd_kiri = "#ECEFED", "#CBD3CE"
-        bg_kanan, brd_kanan = "#ECEFED", "#CBD3CE"
-
-    stepper_slot.markdown(
-        f"""
-        <div style="background-color: #FFFFFF; border: 1px solid #DCE3DF; border-radius: 12px;
-                    padding: 12px 28px; margin: 12px 0 16px 0;
-                    box-shadow: 0 3px 10px rgba(45, 65, 53, 0.04);
-                    display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; justify-content: center;
-                        width: 34px; height: 34px; border-radius: 8px;
-                        background-color: {bg_kiri}; border: 1.5px solid {brd_kiri}; font-size: 16px;">
-                📄
-            </div>
-            <div style="flex-grow: 1; height: 4px; background: linear-gradient(90deg, #5B7B65 {persen_bar}, #DCE3DF {persen_bar});
-                        margin: 0 16px; border-radius: 3px; transition: all 0.3s ease;"></div>
-            <div style="display: flex; align-items: center; justify-content: center;
-                        width: 34px; height: 34px; border-radius: 8px;
-                        background-color: {bg_kanan}; border: 1.5px solid {brd_kanan}; font-size: 16px;">
-                📊
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-        # Ubah warna kotak upload kanan menjadi hijau lembut jika file Excel sudah diunggah
-    if ada_pdf:
-        st.markdown(
-            """
-            <style>
-            div[data-testid="stColumn"]:nth-of-type(1) [data-testid="stFileUploaderDropzone"] {
-                background-color: #EBF3EE !important;
-                border: 1.5px dashed #7EA189 !important;
-                border-radius: 10px !important;
-                transition: all 0.3s ease;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-    if ada_excel:
-        st.markdown(
-            """
-            <style>
-            div[data-testid="stColumn"]:nth-of-type(2) [data-testid="stFileUploaderDropzone"] {
-                background-color: #EBF3EE !important;
-                border: 1.5px dashed #7EA189 !important;
-                border-radius: 10px !important;
-                transition: all 0.3s ease;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-
-    mapping_kolom = {}
-    df_book_raw = None
-
-    if uploaded_book:
-        df_book_raw = pd.read_excel(uploaded_book)
-        kolom_tersedia = df_book_raw.columns.tolist()
-        auto_map = deteksi_kolom_otomatis(kolom_tersedia)
-        wajib_lengkap = all(auto_map[k] is not None for k in ["Date", "Label", "Debit", "Credit"])
-
-        with st.expander("⚙️ Pengaturan Pemetaan Kolom General Ledger (Otomatis Terdeteksi)", expanded=not wajib_lengkap):
-            st.caption("Sistem otomatis mencocokkan nama kolom dari sistem akuntansi/ERP maupun Excel manual. Ubah jika diperlukan:")
-            m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-            with m_col1:
-                mapping_kolom["Date"] = st.selectbox("Kolom Tanggal *", options=kolom_tersedia, index=kolom_tersedia.index(auto_map["Date"]) if auto_map["Date"] in kolom_tersedia else 0)
-            with m_col2:
-                mapping_kolom["Label"] = st.selectbox("Kolom Keterangan / Deskripsi *", options=kolom_tersedia, index=kolom_tersedia.index(auto_map["Label"]) if auto_map["Label"] in kolom_tersedia else 0)
-            with m_col3:
-                mapping_kolom["Debit"] = st.selectbox("Kolom Debit (Uang Masuk) *", options=kolom_tersedia, index=kolom_tersedia.index(auto_map["Debit"]) if auto_map["Debit"] in kolom_tersedia else 0)
-            with m_col4:
-                mapping_kolom["Credit"] = st.selectbox("Kolom Kredit (Uang Keluar) *", options=kolom_tersedia, index=kolom_tersedia.index(auto_map["Credit"]) if auto_map["Credit"] in kolom_tersedia else 0)
-
-            opsi_opsional = ["(Tidak Ada)"] + kolom_tersedia
-            o_col1, o_col2 = st.columns(2)
-            with o_col1:
-                mapping_kolom["Number"] = st.selectbox("Kolom No. Bukti / Referensi (Opsional)", options=opsi_opsional, index=opsi_opsional.index(auto_map["Number"]) if auto_map["Number"] in opsi_opsional else 0)
-            with o_col2:
-                mapping_kolom["Partner"] = st.selectbox("Kolom Nama Rekanan / Partner (Opsional)", options=opsi_opsional, index=opsi_opsional.index(auto_map["Partner"]) if auto_map["Partner"] in opsi_opsional else 0)
-
-    if uploaded_pdfs and uploaded_book and df_book_raw is not None:
-        label_tombol = f"🚀 Proses Rekonsiliasi {pilihan_bank} ({len(uploaded_pdfs)} File PDF)" if len(uploaded_pdfs) > 1 else f"🚀 Proses Rekonsiliasi {pilihan_bank} Sekarang"
-        if st.button(label_tombol, type="primary", use_container_width=True):
-            with st.spinner(f"Sedang mengekstrak {len(uploaded_pdfs)} PDF {pilihan_bank} dan mencocokkan dengan General Ledger..."):
-                try:
-                    df_book_normalized = normalisasi_excel_pembukuan(df_book_raw, mapping_kolom)
-
-                    hasil_ekstraksi_list = []
-                    for pdf_item in uploaded_pdfs:
-                        if pilihan_bank == "BNI Direct":
-                            df_p, s_awal, s_akhir, err_p = ekstrak_pdf_bni(pdf_item)
-                        else:
-                            df_p, s_awal, s_akhir, err_p = ekstrak_pdf_mandiri(pdf_item)
-
-                        df_p["Sumber_File"] = pdf_item.name
-                        tgl_awal_file = pd.to_datetime(df_p["Tanggal"]).min()
-                        hasil_ekstraksi_list.append({
-                            "nama": pdf_item.name, "tgl_awal": tgl_awal_file,
-                            "df": df_p, "saldo_awal": s_awal, "saldo_akhir": s_akhir, "errors": err_p
-                        })
-
-                    hasil_ekstraksi_list.sort(key=lambda x: x["tgl_awal"])
-                    df_bank = pd.concat([x["df"] for x in hasil_ekstraksi_list], ignore_index=True)
-                    saldo_awal = hasil_ekstraksi_list[0]["saldo_awal"]
-                    saldo_akhir = hasil_ekstraksi_list[-1]["saldo_akhir"]
-                    pdf_errors = [err for x in hasil_ekstraksi_list for err in x["errors"]]
-
-                    bulan_bank, bulan_gl, hilang_di_gl, hilang_di_bank = cek_kelengkapan_bulan(df_bank, df_book_normalized)
-
-                    if pilihan_bank == "BNI Direct":
-                        df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_bni(df_bank.copy(), df_book_normalized)
-                    else:
-                        df_export, df_laporan_final, pesan_audit = proses_rekonsiliasi_mandiri(df_bank.copy(), df_book_normalized)
-
-                    df_export, df_laporan_final, pesan_audit = perhalus_label_universal(df_export, df_laporan_final, pesan_audit)
-                    df_export, df_laporan_final = tambah_kolom_selisih(df_export, df_laporan_final)
-                    df_rekap_bulan = buat_rekap_per_bulan(df_laporan_final)
-
-                    from openpyxl.utils import get_column_letter
-                    output_buffer = io.BytesIO()
-                    with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
-                        df_export.to_excel(writer, sheet_name="Hasil Rekonsiliasi", index=False)
-                        df_rekap_bulan.to_excel(writer, sheet_name="Rekap Per Bulan", index=False)
-                        df_bank.to_excel(writer, sheet_name=f"Ekstraksi PDF {pilihan_bank[:10]}", index=False)
-
-                        ws = writer.sheets["Hasil Rekonsiliasi"]
-                        ws.auto_filter.ref = ws.dimensions
-                        headers = [cell.value for cell in ws[1]]
-                        last_data_row = len(df_laporan_final) + 1
-                        row_total_rekon = last_data_row + 1
-                        row_total_asli = last_data_row + 2
-                        row_control_check = last_data_row + 3
-
-                        col_idx = {name: i + 1 for i, name in enumerate(headers)}
-                        col_letter = {name: get_column_letter(i + 1) for i, name in enumerate(headers)}
-
-                        if all(k in col_letter for k in ["Kredit", "Debet", "Debit", "Credit", "Selisih Bank dengan GL"]):
-                            c_kredit, c_debet = col_letter["Kredit"], col_letter["Debet"]
-                            c_debit, c_credit = col_letter["Debit"], col_letter["Credit"]
-                            idx_selisih = col_idx["Selisih Bank dengan GL"]
-                            for r in range(2, last_data_row + 1):
-                                ws.cell(row=r, column=idx_selisih).value = f"=({c_kredit}{r}-{c_debet}{r})-({c_debit}{r}-{c_credit}{r})"
-
-                        for nama_kol in ["Debet", "Kredit", "Debit", "Credit", "Selisih Bank dengan GL"]:
-                            if nama_kol in col_idx:
-                                c_idx, c_let = col_idx[nama_kol], col_letter[nama_kol]
-                                ws.cell(row=row_total_rekon, column=c_idx).value = f"=SUM({c_let}2:{c_let}{last_data_row})"
-                                ws.cell(row=row_control_check, column=c_idx).value = f"={c_let}{row_total_rekon}-{c_let}{row_total_asli}"
-
-                    nama_prefix = f"{len(uploaded_pdfs)}_Bulan_{pilihan_bank.replace(' ', '_')}" if len(uploaded_pdfs) > 1 else uploaded_pdfs[0].name.replace('.pdf', '')
-                    nama_file_keluar = f"Hasil_Rekonsiliasi_{nama_prefix}.xlsx"
-
-                    st.session_state.last_result = {
-                        "pilihan_bank": pilihan_bank,
-                        "jumlah_pdf": len(uploaded_pdfs),
-                        "saldo_awal": saldo_awal,
-                        "saldo_akhir": saldo_akhir,
-                        "pdf_errors": pdf_errors,
-                        "pesan_audit": pesan_audit,
-                        "hilang_di_gl": hilang_di_gl,
-                        "hilang_di_bank": hilang_di_bank,
-                        "bulan_bank": bulan_bank,
-                        "df_bank": df_bank,
-                        "df_export": df_export,
-                        "df_laporan_final": df_laporan_final,
-                        "df_rekap_bulan": df_rekap_bulan,
-                        "excel_bytes": output_buffer.getvalue(),
-                        "nama_file_keluar": nama_file_keluar
-                    }
-                except Exception as e:
-                    st.error(f"Terjadi kesalahan saat memproses file: {e}")
-    if st.session_state.last_result is not None:
-        res = st.session_state.last_result
-        st.divider()
-
-        if res["hilang_di_gl"]:
-            st.warning(f"⚠️ **PERINGATAN KELENGKAPAN GENERAL LEDGER:** PDF Rekening Koran mencakup **{len(res['bulan_bank'])} bulan** (`{res['bulan_bank'][0]}` s.d. `{res['bulan_bank'][-1]}`), tetapi file General Ledger **tidak memiliki data transaksi** pada bulan: **{', '.join(res['hilang_di_gl'])}**.")
-        if res["hilang_di_bank"]:
-            st.warning(f"⚠️ **PERINGATAN KELENGKAPAN PDF BANK:** File General Ledger memiliki transaksi pada bulan **{', '.join(res['hilang_di_bank'])}** yang belum diunggah file PDF Rekening Korannya.")
-
-        if len(res["pdf_errors"]) == 0:
-            st.success(f"**Ekstraksi {res['jumlah_pdf']} PDF {res['pilihan_bank']} Valid 100%!** ({len(res['df_bank'])} transaksi | Saldo Awal: Rp {res['saldo_awal']:,.2f} → Saldo Akhir: Rp {res['saldo_akhir']:,.2f})")
-        else:
-            st.warning(f"Ditemukan {len(res['pdf_errors'])} baris selisih pada pembacaan saldo PDF.")
-
-        if "OKE 100%" in res["pesan_audit"]:
-            st.success(f"**Status Audit Rekonsiliasi:** {res['pesan_audit']}")
-        else:
-            st.error(f"**Status Audit Rekonsiliasi:** {res['pesan_audit']}")
-
-        with st.container(border=True):
-            df_lap = res["df_laporan_final"]
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Total Baris Laporan", len(df_lap))
-            m2.metric("Cocok (MATCH)", df_lap['Status_Rekonsiliasi'].str.startswith('MATCH').sum())
-            m3.metric("Hanya di Bank", df_lap['Status_Rekonsiliasi'].str.startswith('HANYA DI BANK').sum())
-            m4.metric("Hanya di General Ledger", df_lap['Status_Rekonsiliasi'].str.startswith('HANYA DI GENERAL LEDGER').sum())
-
-        with st.container(border=True):
-            tab_rekap, tab1, tab2 = st.tabs([
-                "📅 Rekap Selisih Per Bulan",
-                "📊 Hasil Rekonsiliasi Lengkap",
-                f"📄 Hasil Ekstraksi PDF {res['pilihan_bank']}"
-            ])
-
-            # Konfigurasi Format Angka Accounting untuk Tabel Layar
-            cfg_uang = st.column_config.NumberColumn(format="accounting")
-            config_rekap = {
-                "Debet Bank": cfg_uang,
-                "Kredit Bank": cfg_uang,
-                "Debit GL": cfg_uang,
-                "Credit GL": cfg_uang,
-                "Selisih Bank dengan GL": cfg_uang,
-            }
-            config_lengkap = {
-                "Debet": cfg_uang,
-                "Kredit": cfg_uang,
-                "Saldo": cfg_uang,
-                "Debit": cfg_uang,
-                "Credit": cfg_uang,
-                "Selisih Bank dengan GL": cfg_uang,
-            }
-            config_ekstraksi = {
-                "Debet": cfg_uang,
-                "Kredit": cfg_uang,
-                "Saldo": cfg_uang,
-            }
-
-            with tab_rekap:
-                st.caption("Ringkasan total mutasi dan selisih per bulan untuk memudahkan pelacakan bulan yang berselisih:")
-                st.dataframe(res["df_rekap_bulan"], column_config=config_rekap, use_container_width=True)
-
-            with tab1:
-                f_col1, f_col2 = st.columns(2)
-                with f_col1:
-                    opsi_bulan = sorted(df_lap['Tanggal_Clean'].astype(str).str[:7].unique().tolist())
-                    filter_bulan = st.multiselect("Filter Bulan:", options=opsi_bulan, default=opsi_bulan)
-                with f_col2:
-                    filter_status = st.multiselect(
-                        "Filter Status Rekonsiliasi:",
-                        options=df_lap['Status_Rekonsiliasi'].unique().tolist(),
-                        default=df_lap['Status_Rekonsiliasi'].unique().tolist()
-                    )
-                df_tampil = df_lap[
-                    (df_lap['Tanggal_Clean'].astype(str).str[:7].isin(filter_bulan))
-                    & (df_lap['Status_Rekonsiliasi'].isin(filter_status))
-                ]
-                st.dataframe(df_tampil, column_config=config_lengkap, use_container_width=True, height=450)
-            with tab2:
-                st.dataframe(res["df_bank"], column_config=config_ekstraksi, use_container_width=True, height=450)
-
-        st.download_button(
-            label=f"📥 Download Hasil Rekonsiliasi {res['pilihan_bank']} (.xlsx)",
-            data=res["excel_bytes"],
-            file_name=res["nama_file_keluar"],
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            type="primary",
-            use_container_width=True
-        )
-
-# ============================================================
-# MENU 3: REPORTS (ARSIP & RINGKASAN AUDIT)
-# ============================================================
-elif menu_aktif == "📑 Reports":
-    st.subheader("📑 Reconciliation Audit Reports")
-    res = st.session_state.last_result
-
-    if res is None:
-        with st.container(border=True):
-            st.info("Belum ada laporan yang tersedia. Jalankan proses pada menu **🔄 Reconciliation** terlebih dahulu.")
-    else:
-        with st.container(border=True):
-            st.markdown(f"**Laporan Audit:** `{res['nama_file_keluar']}`")
-            st.write(f"**Status Validasi:** {res['pesan_audit']}")
-            st.dataframe(res["df_export"].tail(3), use_container_width=True)
-            st.download_button(
-                label="📥 Unduh Ulang Laporan Excel (.xlsx)",
-                data=res["excel_bytes"],
-                file_name=res["nama_file_keluar"],
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="primary"
+        h1, h2 = st.columns([1.5, 2])
+        with h1:
+            nama_rek = st.text_input(
+                f"Label / No. Rekening #{idx + 1}",
+                value=f"Rekening_{idx + 1}",
+                key=f"nama_rek_{idx}"
+            )
+        with h2:
+            bank_pilihan = st.radio(
+                f"Pilih Bank Rekening #{idx + 1}:",
+                ["BNI Direct", "Bank Mandiri"],
+                horizontal=True,
+                key=f"bank_rek_{idx}"
             )
 
-# ============================================================
-# MENU 4: SETTINGS (PARAMETER & PANDUAN STANDAR)
-# ============================================================
-elif menu_aktif == "⚙️ Settings":
-    st.subheader("⚙️ Workspace Configuration & Rules")
-    with st.container(border=True):
-        st.markdown("**Parameter Mesin Rekonsiliasi Aktif**")
-        st.markdown(
-            """
-            * **Toleransi Pembulatan Nominal:** Maksimal **Rp 1,00** untuk transaksi reguler dan **Rp 5,00** untuk *Netting Jagir*.
-            * **Toleransi Selisih Kurs Valas (BNI):** Maksimal **Rp 500,00** jika label mengandung simbol `$` atau `€`.
-            * **Rentang Pencocokan Beda Tanggal (BNI):** Hingga **±10 hari** untuk transaksi satuan dan **±5 hari** untuk transaksi gabungan (*split match*).
-            * **Pengelompokan Biaya Admin:** Otomatis diakumulasikan per bulan (`YYYY-MM`).
-            * **Standar Kolom Excel General Ledger:** Mendukung otomatis kolom `Date/Tanggal`, `Label/Keterangan`, `Debit/Debet` (Uang Masuk), dan `Credit/Kredit` (Uang Keluar).
-            """
-        )
+        col1, col2 = st.columns(2)
+        with col1:
+            pdfs = st.file_uploader(
+                f"1. PDF Rekening Koran {nama_rek} (Bisa Multi-Bulan)",
+                type=["pdf"],
+                accept_multiple_files=True,
+                key=f"pdf_rek_{idx}"
+            )
+        with col2:
+            book = st.file_uploader(
+                f"2. Excel General Ledger {nama_rek} (.xlsx)",
+                type=["xlsx"],
+                key=f"book_rek_{idx}"
+            )
 
+        mapping_kolom = {}
+        df_book_raw = None
+        if book:
+            df_book_raw = pd.read_excel(book)
+            kolom_tersedia = df_book_raw.columns.tolist()
+            auto_map = deteksi_kolom_otomatis(kolom_tersedia)
+            wajib_lengkap = all(auto_map[k] is not None for k in ["Date", "Label", "Debit", "Credit"])
 
+            with st.expander(f"⚙️ Pengaturan Pemetaan Kolom GL ({nama_rek})", expanded=not wajib_lengkap):
+                mc1, mc2, mc3, mc4 = st.columns(4)
+                with mc1:
+                    mapping_kolom["Date"] = st.selectbox("Tanggal *", kolom_tersedia, index=kolom_tersedia.index(auto_map["Date"]) if auto_map["Date"] in kolom_tersedia else 0, key=f"m_date_{idx}")
+                with mc2:
+                    mapping_kolom["Label"] = st.selectbox("Keterangan *", kolom_tersedia, index=kolom_tersedia.index(auto_map["Label"]) if auto_map["Label"] in kolom_tersedia else 0, key=f"m_lbl_{idx}")
+                with mc3:
+                    mapping_kolom["Debit"] = st.selectbox("Debit (Masuk) *", kolom_tersedia, index=kolom_tersedia.index(auto_map["Debit"]) if auto_map["Debit"] in kolom_tersedia else 0, key=f"m_deb_{idx}")
+                with mc4:
+                    mapping_kolom["Credit"] = st.selectbox("Kredit (Keluar) *", kolom_tersedia, index=kolom_tersedia.index(auto_map["Credit"]) if auto_map["Credit"] in kolom_tersedia else 0, key=f"m_cre_{idx}")
+
+                opsi_ops = ["(Tidak Ada)"] + kolom_tersedia
+                oc1, oc2 = st.columns(2)
+                with oc1:
+                    mapping_kolom["Number"] = st.selectbox("No. Bukti (Opsional)", opsi_ops, index=opsi_ops.index(auto_map["Number"]) if auto_map["Number"] in opsi_ops else 0, key=f"m_num_{idx}")
+                with oc2:
+                    mapping_kolom["Partner"] = st.selectbox("Partner (Opsional)", opsi_ops, index=opsi_ops.index(auto_map["Partner"]) if auto_map["Partner"] in opsi_ops else 0, key=f"m_par_{idx}")
+
+        daftar_input_rekening.append({
+            "nama_rek": nama_rek.strip() or f"Rekening_{idx + 1}",
+            "bank": bank_pilihan, "pdfs": pdfs, "df_gl_raw": df_book_raw, "mapping": mapping_kolom
+        })
+rekening_siap = [r for r in daftar_input_rekening if r["pdfs"] and r["df_gl_raw"] is not None]
+
+if rekening_siap:
+    label_btn = f"🚀 Proses Rekonsiliasi ({len(rekening_siap)} Rekening)" if len(rekening_siap) > 1 else f"🚀 Proses Rekonsiliasi {rekening_siap['bank']} Sekarang"
+    if st.button(label_btn, type="primary", use_container_width=True):
+        with st.spinner("Sedang mengekstrak PDF dan menjalankan audit rekonsiliasi..."):
+            try:
+                hasil_semua_rekening = []
+                for item in rekening_siap:
+                    res = jalankan_rekon_satu_rekening(item["nama_rek"], item["bank"], item["pdfs"], item["df_gl_raw"], item["mapping"])
+                    hasil_semua_rekening.append(res)
+
+                st.divider()
+
+                # Siapkan Excel Gabungan (3 sheet standar jika 1 rekening; 1 summary + 3 sheet per rekening jika > 1 rekening)
+                output_buffer = io.BytesIO()
+                with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
+                    if len(hasil_semua_rekening) == 1:
+                        h = hasil_semua_rekening
+                        tulis_sheet_hasil_dengan_rumus(writer, "Hasil Rekonsiliasi", h["df_export"], h["df_laporan_final"])
+                        h["df_rekap_bulan"].to_excel(writer, sheet_name="Rekap Per Bulan", index=False)
+                        h["df_bank"].to_excel(writer, sheet_name=f"Ekstraksi PDF {h['bank'][:10]}", index=False)
+                    else:
+                        summary_rows = []
+                        for h in hasil_semua_rekening:
+                            df_lf = h["df_laporan_final"]
+                            selisih_tot = round((df_lf["Kredit"].fillna(0).sum() - df_lf["Debet"].fillna(0).sum()) - (df_lf["Debit"].fillna(0).sum() - df_lf["Credit"].fillna(0).sum()), 2)
+                            periode = f"{h['bulan_bank']} s.d. {h['bulan_bank'][-1]}" if len(h["bulan_bank"]) > 1 else (h["bulan_bank"] if h["bulan_bank"] else "-")
+                            summary_rows.append({
+                                "Nama Rekening": h["nama_rek"], "Bank": h["bank"], "Periode": periode,
+                                "Saldo Awal": h["saldo_awal"], "Saldo Akhir": h["saldo_akhir"],
+                                "Selisih Bank vs GL": selisih_tot, "Status Audit": h["pesan_audit"]
+                            })
+                        pd.DataFrame(summary_rows).to_excel(writer, sheet_name="Summary_Semua_Rekening", index=False)
+
+                        for idx_h, h in enumerate(hasil_semua_rekening):
+                            pref = re.sub(r'[^A-Za-z0-9_]', '', h["nama_rek"])[:14] or f"Rek{idx_h+1}"
+                            tulis_sheet_hasil_dengan_rumus(writer, f"{pref}_Hasil_Rekon", h["df_export"], h["df_laporan_final"])
+                            h["df_rekap_bulan"].to_excel(writer, sheet_name=f"{pref}_Rekap_Bulan", index=False)
+                            h["df_bank"].to_excel(writer, sheet_name=f"{pref}_Ekstrak_PDF", index=False)
+
+                nama_dl = "Hasil_Rekonsiliasi_Multi_Rekening.xlsx" if len(hasil_semua_rekening) > 1 else f"Hasil_Rekonsiliasi_{hasil_semua_rekening['nama_rek']}.xlsx"
+                st.download_button("📥 Download File Excel Hasil Rekonsiliasi (.xlsx)", data=output_buffer.getvalue(), file_name=nama_dl, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary", use_container_width=True)
+
+                # Tampilkan Hasil di Web per Rekening
+                tabs_rek = st.tabs([f"🏦 {h['nama_rek']} ({h['bank']})" for h in hasil_semua_rekening])
+                for tab_item, h in zip(tabs_rek, hasil_semua_rekening):
+                    with tab_item:
+                        if h["hilang_di_gl"]:
+                            st.warning(f"⚠️ **Peringatan GL:** PDF mencakup `{h['bulan_bank']}` s.d. `{h['bulan_bank'][-1]}`, tetapi GL kosong di bulan: **{', '.join(h['hilang_di_gl'])}**.")
+                        if h["hilang_di_bank"]:
+                            st.warning(f"⚠️ **Peringatan PDF:** GL memiliki data pada bulan **{', '.join(h['hilang_di_bank'])}** yang belum diunggah PDF-nya.")
+                        if len(h["pdf_errors"]) == 0:
+                            st.success(f"**Ekstraksi {h['jml_pdf']} PDF Valid 100%!** ({len(h['df_bank'])} trx | Saldo Awal: Rp {h['saldo_awal']:,.2f} → Saldo Akhir: Rp {h['saldo_akhir']:,.2f})")
+                        else:
+                            st.warning(f"Ditemukan {len(h['pdf_errors'])} baris selisih pada pembacaan saldo PDF.")
+
+                        if "OKE 100%" in h["pesan_audit"]:
+                            st.success(f"**Status Audit:** {h['pesan_audit']}")
+                        else:
+                            st.error(f"**Status Audit:** {h['pesan_audit']}")
+
+                        df_lf = h["df_laporan_final"]
+                        m1, m2, m3, m4 = st.columns(4)
+                        m1.metric("Total Baris", len(df_lf))
+                        m2.metric("Cocok (MATCH)", df_lf['Status_Rekonsiliasi'].str.startswith('MATCH').sum())
+                        m3.metric("Hanya di Bank", df_lf['Status_Rekonsiliasi'].str.startswith('HANYA DI BANK').sum())
+                        m4.metric("Hanya di GL", df_lf['Status_Rekonsiliasi'].str.startswith('HANYA DI GENERAL LEDGER').sum())
+
+                        sub_rekap, sub_detail, sub_pdf = st.tabs(["📅 Rekap Per Bulan", "📊 Hasil Rekonsiliasi Lengkap", "📄 Hasil Ekstraksi PDF"])
+                        with sub_rekap:
+                            st.dataframe(h["df_rekap_bulan"], use_container_width=True)
+                        with sub_detail:
+                            opsi_bln = sorted(df_lf['Tanggal_Clean'].astype(str).str[:7].unique().tolist())
+                            fc1, fc2 = st.columns(2)
+                            with fc1:
+                                f_bln = st.multiselect("Filter Bulan:", opsi_bln, default=opsi_bln, key=f"f_bln_{h['nama_rek']}")
+                            with fc2:
+                                f_sts = st.multiselect("Filter Status:", df_lf['Status_Rekonsiliasi'].unique().tolist(), default=df_lf['Status_Rekonsiliasi'].unique().tolist(), key=f"f_sts_{h['nama_rek']}")
+                            st.dataframe(df_lf[(df_lf['Tanggal_Clean'].astype(str).str[:7].isin(f_bln)) & (df_lf['Status_Rekonsiliasi'].isin(f_sts))], use_container_width=True, height=420)
+                        with sub_pdf:
+                            st.dataframe(h["df_bank"], use_container_width=True, height=420)
+
+            except Exception as e:
+                st.error(f"Terjadi kesalahan saat memproses file: {e}")
