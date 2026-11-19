@@ -66,7 +66,7 @@ if not st.session_state.authenticated:
                     <div style="display: inline-block; background-color: #EBF1ED; color: #496552;
                                 font-size: 0.72rem; font-weight: 700; letter-spacing: 0.8px;
                                 padding: 4px 12px; border-radius: 20px; margin-bottom: 10px;">
-                        REKON PRO • ENTERPRISE WORKSPACE
+                        REKONIT! • FASTER 'N EASIER!
                     </div>
                     <div style="font-size: 2.2rem; line-height: 1.1; margin-bottom: 6px;">🏦</div>
                     <h2 style="margin: 0; font-size: 1.45rem; color: #1E2923; font-weight: 700;">
