@@ -389,7 +389,7 @@ def jalankan_rekon_satu_rekening(nama_rek, bank_pilihan, pdf_files, df_gl_raw, m
 # ============================================================
 # HEADER UTAMA & TOMBOL LOGOUT (RESET TOTAL)
 # ============================================================
-head_col1, head_col2 = st.columns([6, 1])
+head_col1, head_col2 = st.columns([5, 1])
 with head_col1:
     st.markdown(
         """
@@ -408,7 +408,7 @@ with head_col2:
 
 st.markdown("Unggah **PDF Rekening Koran (1 bulan atau multi-bulan)** dan **Excel General Ledger** untuk satu atau beberapa rekening sekaligus.")
 with st.container(border=True):
-    c_jml, c_info = st.columns()
+    c_jml, c_info = st.columns([1, 2.5])
     with c_jml:
         jumlah_rekening = st.number_input("Jumlah Rekening Diproses:", min_value=1, max_value=10, value=1, step=1)
     with c_info:
